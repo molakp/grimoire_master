@@ -1,0 +1,6 @@
+{
+  "name": "Grimoire Master",
+  "description": "A premium high-fantasy character sheet and spellbook companion.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

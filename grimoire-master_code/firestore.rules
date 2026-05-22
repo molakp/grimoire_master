@@ -1,0 +1,187 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Catch-all safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // AUTH HELPER FUNCTIONS
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Safety checks against ID poisoning
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\.\\@]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // MASTER & ADMIN RBAC CHECKS
+    function isMasterAdmin() {
+      return isSignedIn() && (
+        request.auth.token.emailLower == "silvestrofrisullo@gmail.com" ||
+        request.auth.token.email.lower() == "silvestrofrisullo@gmail.com" ||
+        request.auth.token.email.lower() == "silvestrofrisullo.gmail.com"
+      );
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        isMasterAdmin() ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower()))
+      );
+    }
+
+    function isBanned() {
+      return isSignedIn() && exists(/databases/$(database)/documents/banned_users/$(request.auth.token.email.lower()));
+    }
+
+    // VALIDATION BLUEPRINTS (The "Anti-Update-Gaps")
+    function isValidAdmin(data) {
+      return data.email is string && data.email.size() <= 100
+        && data.role is string && (data.role == "master" || data.role == "admin")
+        && data.promotedBy is string && data.promotedBy.size() <= 100
+        && data.createdAt is string;
+    }
+
+    function isValidOfficialTemplate(data) {
+      return data.id is string && data.id.size() <= 100
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.class is string && data.class.size() <= 100
+        && data.type is string && (data.type == "Core Class" || data.type == "Arcane Class" || data.type == "Shadow Class" || data.type == "Divine Class")
+        && data.description is string && data.description.size() <= 1000
+        && data.icon is string && data.icon.size() <= 50
+        && data.avatar is string && data.avatar.size() <= 1000000
+        && data.defaultStats is map;
+    }
+
+    function isValidCommunityCharacter(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.class is string && data.class.size() <= 50
+        && data.level is number && data.level >= 1 && data.level <= 100
+        && data.author is string && data.author.size() <= 100
+        && data.authorEmail is string && data.authorEmail.size() <= 100
+        && data.rating is number
+        && data.description is string && data.description.size() <= 2000
+        && data.avatar is string && data.avatar.size() <= 1000000
+        && data.characterData is map;
+    }
+
+    function isValidMail(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.recipientEmail is string && data.recipientEmail.size() <= 100
+        && data.subject is string && data.subject.size() > 0 && data.subject.size() <= 200
+        && data.content is string && data.content.size() > 0 && data.content.size() <= 5000
+        && data.senderEmail is string && data.senderEmail.size() <= 100
+        && data.type is string && (data.type == "promotion" || data.type == "warning")
+        && data.read is bool
+        && data.createdAt is string;
+    }
+
+    function isValidBannedUser(data) {
+      return data.email is string && data.email.size() <= 100
+        && data.bannedBy is string && data.bannedBy.size() <= 100
+        && data.reason is string && data.reason.size() <= 1000
+        && data.createdAt is string;
+    }
+
+    function isValidCharacter(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.level is number && data.level >= 1 && data.level <= 100
+        && data.class is string && data.class.size() <= 100
+        && data.experience is number && data.experience >= 0
+        && data.avatar is string && data.avatar.size() <= 1000000
+        && data.attributes is map
+        && data.attributes.INT is number && data.attributes.INT >= 0 && data.attributes.INT <= 30
+        && data.attributes.FOR is number && data.attributes.FOR >= 0 && data.attributes.FOR <= 30
+        && data.attributes.DES is number && data.attributes.DES >= 0 && data.attributes.DES <= 30
+        && data.attributes.COS is number && data.attributes.COS >= 0 && data.attributes.COS <= 30
+        && data.attributes.SAG is number && data.attributes.SAG >= 0 && data.attributes.SAG <= 30
+        && data.attributes.CAR is number && data.attributes.CAR >= 0 && data.attributes.CAR <= 30
+        && data.vitality is map
+        && data.vitality.max is number && data.vitality.max >= 0
+        && data.vitality.current is number && data.vitality.current >= 0
+        && data.armor is number && data.armor >= 0
+        && data.damageDie is string && data.damageDie.size() <= 10
+        && data.race is string && data.race.size() <= 50
+        && data.alignment is string && data.alignment.size() <= 50
+        && (!data.keys().hasAll(['alignmentDesc']) || data.alignmentDesc is string && data.alignmentDesc.size() <= 500)
+        && data.maxWeight is number && data.maxWeight >= 0
+        && (!data.keys().hasAll(['locked']) || data.locked is bool)
+        && (!data.keys().hasAll(['preparedSpellNames']) || data.preparedSpellNames is list)
+        && (!data.keys().hasAll(['selectedMoves']) || data.selectedMoves is list)
+        && (!data.keys().hasAll(['isCustom']) || data.isCustom is bool)
+        && data.ownerId is string && data.ownerId.size() <= 128;
+    }
+
+    // 1. PLAYABLE CHARACTERS
+    match /characters/{characterId} {
+      allow create: if isSignedIn() 
+        && !isBanned()
+        && isValidId(characterId) 
+        && isValidCharacter(incoming()) 
+        && incoming().ownerId == request.auth.uid;
+        
+      allow read: if isSignedIn() 
+        && !isBanned()
+        && resource.data.ownerId == request.auth.uid;
+        
+      allow update: if isSignedIn() 
+        && !isBanned()
+        && isValidId(characterId) 
+        && isValidCharacter(incoming()) 
+        && incoming().ownerId == request.auth.uid 
+        && incoming().id == existing().id 
+        && incoming().ownerId == existing().ownerId;
+        
+      allow delete: if isSignedIn() 
+        && !isBanned()
+        && isValidId(characterId) 
+        && resource.data.ownerId == request.auth.uid;
+    }
+
+    // 2. TEMPLE ADMINISTRATORS
+    match /admins/{email} {
+      allow read: if isSignedIn() && !isBanned() && (isMasterAdmin() || request.auth.token.email.lower() == email);
+      allow write: if isMasterAdmin();
+    }
+
+    // 3. OFFICIAL BLUEPRINT TEMPLATES
+    match /official_templates/{templateId} {
+      allow read: if isSignedIn() && !isBanned();
+      allow write: if isAdmin() && !isBanned();
+    }
+
+    // 4. PUBLIC COMMUNITY REALM CHARACTERS
+    match /community_characters/{communityId} {
+      allow read: if isSignedIn() && !isBanned();
+      allow create: if isSignedIn() && !isBanned() && isValidCommunityCharacter(incoming()) && incoming().authorEmail.lower() == request.auth.token.email.lower();
+      allow update: if isSignedIn() && !isBanned() && (isAdmin() || existing().authorEmail.lower() == request.auth.token.email.lower()) && isValidCommunityCharacter(incoming());
+      allow delete: if isSignedIn() && !isBanned() && (isAdmin() || existing().authorEmail.lower() == request.auth.token.email.lower());
+    }
+
+    // 5. PARCHMENT CORRESPONDENCE MAILBOXES
+    match /mails/{mailId} {
+      allow read: if isSignedIn() && !isBanned() && (request.auth.token.email.lower() == resource.data.recipientEmail.lower() || isMasterAdmin());
+      allow create: if isSignedIn() && !isBanned() && isValidMail(incoming()) && (isMasterAdmin() || incoming().senderEmail.lower() == request.auth.token.email.lower());
+      allow update: if isSignedIn() && !isBanned() && (request.auth.token.email.lower() == resource.data.recipientEmail.lower() || isMasterAdmin()) && isValidMail(incoming());
+      allow delete: if isSignedIn() && !isBanned() && (request.auth.token.email.lower() == resource.data.recipientEmail.lower() || isMasterAdmin());
+    }
+
+    // 6. BANNED USERS COVEN
+    match /banned_users/{email} {
+      allow read: if isSignedIn() && !isBanned() && (isMasterAdmin() || request.auth.token.email.lower() == email);
+      allow write: if isMasterAdmin();
+    }
+  }
+}

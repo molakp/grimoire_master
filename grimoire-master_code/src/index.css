@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Work+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Libre Caslon Text", Georgia, serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-primary-container: #d4af37;
+  --color-primary: #f2ca50;
+  --color-surface-tint: #e9c349;
+  --color-surface-container: #1f1f20;
+  --color-surface-container-low: #1b1b1c;
+  --color-surface-container-high: #2a2a2b;
+  --color-surface-container-lowest: #0e0e0f;
+  --color-surface-container-highest: #353436;
+  --color-outline-variant: #4d4635;
+  --color-on-surface: #f4efe2;
+  --color-on-surface-variant: #d0c5af;
+  --color-primary-fixed-dim: #e9c349;
+  --color-secondary-container: #ff5625;
+  --color-tertiary-container: #d09eff;
+  --color-on-tertiary-container: #602397;
+  --color-error-container: #93000a;
+  --color-error: #ffb4ab;
+  --color-background: #131314;
+}
+
+/* Custom Skymorphic & Atmospheric Styles */
+.parchment-bg {
+  background-image: radial-gradient(circle at 50% 50%, rgba(31, 31, 32, 0.8) 0%, rgba(19, 19, 20, 1) 100%), url(https://lh3.googleusercontent.com/aida-public/AB6AXuA69w5N5j434ZGQfn4giaPHcn9_P5Iysr6wkVSz34-Q8VwsKzl9E9dJt_EMoQxVmJzIqUEt8-94gFaVS3vIauOnsL2G6VgaXeerGkLWqPMF2kZNg0lnk9Qgacjpa0mXzMjpqv7eZI9EANDffpwCe-iy0-Jkl7ivBgT794qJUSLIwDYBvWK1THCJQJp9BSSxmambubwyNSVGZEYVdgsvqmtYv4taUGeYYCHg_QFcasMOG1LF81S-YrbLPxeCr4Cu82dsBSgU3HQT0qE);
+  background-blend-mode: multiply;
+  background-attachment: fixed;
+  background-size: cover;
+}
+
+.parchment-texture {
+  background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuChimBb1ZSSl0V9KCLWYT-2XT850_2_T8FDZ-rm7eCLpCLW8c9_gMVRpdbLjoIwLvYrimJU2NlqOuwUhhny4pqQ3edJxVfuquedoI9VrErMXyoJFvRJx1wlLsqXro-G0ZvKC9bGhPAnvooJm7tJBmt34rlkOuRTQDqJ5N5diEnW4TTW2rYEYRxAICXMrPCmKdLIAtEhfWAORfB60rvVZklRXUDjG6VJz1fizdvzDkZZO_niTLwSVCre0BvL7waPAwefxMmD2uds2L8);
+  background-color: #1b1b1c;
+}
+
+.deckle-edge {
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.2), inset 0 0 20px rgba(0, 0, 0, 0.8);
+  position: relative;
+}
+
+.deckle-edge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  border-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10V0H10' stroke='%23d4af37' stroke-width='2'/%3E%3Cpath d='M30 0H40V10' stroke='%23d4af37' stroke-width='2'/%3E%3Cpath d='M40 30V40H30' stroke='%23d4af37' stroke-width='2'/%3E%3Cpath d='M10 40H0V30' stroke='%23d4af37' stroke-width='2'/%3E%3C/svg%3E") 15 stretch;
+  pointer-events: none;
+}
+
+.glass-vial-health {
+  background: linear-gradient(to bottom, rgba(147, 0, 10, 0.3), rgba(255, 180, 171, 0.1));
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.parchment-card {
+  background-color: #1f1f20;
+  background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuAh5rhrrFgCUQt1DBVGjYXN_zmB9iVcVjxAm_UguqfIv9JMo03AXJ4Xr4blPa9rsAv8K9083ykGwHDSPGkUm70IOqz4TA-CBW4z3Cn7bCAPQfSOft0RttriWH5eMRzfxX43bz--oHY8xwv23KBGwwWbpW9VvWIgEXlfm1PlTxYt9POf7CGOft069xBYS28OCE6Vl7-ztZlp_iN3GQIxTIEMJdrcUP7wVdSmWxcrwEAlrieFaPTiytqzMEyvuHb4yDBjaZxw6Xx-mVY);
+  position: relative;
+  border: 1px solid #4d4635;
+  transition: all 0.3s ease;
+}
+
+.parchment-card:hover {
+  border-color: #f2ca50;
+  box-shadow: 0 0 15px rgba(242, 202, 80, 0.15);
+}
+
+.glow-gold {
+  box-shadow: 0 0 15px rgba(242, 202, 80, 0.3);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #131314;
+}
+::-webkit-scrollbar-thumb {
+  background: #4d4635;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #f2ca50;
+}

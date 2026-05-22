@@ -1,0 +1,178 @@
+{
+  "entities": {
+    "Character": {
+      "title": "Character",
+      "description": "A player character sheet for the RPG, containing stats, race, class, spells, gear, and ownership.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier of the character." },
+        "name": { "type": "string", "description": "The name of the character." },
+        "level": { "type": "integer", "description": "The level of the character." },
+        "class": { "type": "string", "description": "The character class, such as Il Mago." },
+        "experience": { "type": "integer", "description": "The current experience points." },
+        "avatar": { "type": "string", "description": "URL or base64 data for the character icon." },
+        "attributes": {
+          "type": "object",
+          "description": "Character raw ability scores",
+          "properties": {
+            "INT": { "type": "integer" },
+            "FOR": { "type": "integer" },
+            "DES": { "type": "integer" },
+            "COS": { "type": "integer" },
+            "SAG": { "type": "integer" },
+            "CAR": { "type": "integer" }
+          },
+          "required": ["INT", "FOR", "DES", "COS", "SAG", "CAR"]
+        },
+        "vitality": {
+          "type": "object",
+          "description": "Character hit points",
+          "properties": {
+            "max": { "type": "integer" },
+            "current": { "type": "integer" }
+          },
+          "required": ["max", "current"]
+        },
+        "armor": { "type": "integer", "description": "Armor rating." },
+        "damageDie": { "type": "string", "description": "Standard damage die." },
+        "race": { "type": "string", "description": "Character race (e.g., ELFO, UMANO)." },
+        "alignment": { "type": "string", "description": "Character alignment." },
+        "alignmentDesc": { "type": "string", "description": "Detail on alignment drive." },
+        "bonds": {
+          "type": "array",
+          "description": "List of relationships/bonds with companions.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "companion": { "type": "string" },
+              "statement": { "type": "string" }
+            }
+          }
+        },
+        "gear": {
+          "type": "array",
+          "description": "List of items carried.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "weight": { "type": "integer" }
+            }
+          }
+        },
+        "maxWeight": { "type": "integer", "description": "Maximum weight load capacity." },
+        "locked": { "type": "boolean", "description": "Flag to freeze editing state." },
+        "preparedSpellNames": { "type": "array", "items": { "type": "string" } },
+        "selectedMoves": { "type": "array", "items": { "type": "string" } },
+        "ownerId": { "type": "string", "description": "The UID of the user who owns/created this character." },
+        "isCustom": { "type": "boolean", "description": "Whether the character is custom-created by the user." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the character sheet was created." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the character sheet was last updated." }
+      },
+      "required": ["id", "name", "level", "class", "experience", "avatar", "attributes", "vitality", "armor", "damageDie", "race", "alignment", "maxWeight", "ownerId"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "A user email nominated as administrator of the Grimoire.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "description": "The email of the nominated admin." },
+        "role": { "type": "string", "enum": ["master", "admin"], "description": "The administrative hierarchical level." },
+        "promotedBy": { "type": "string", "description": "Email descriptor of the nominating master." },
+        "createdAt": { "type": "string", "format": "date" }
+      },
+      "required": ["email", "role"]
+    },
+    "OfficialTemplate": {
+      "title": "OfficialTemplate",
+      "description": "Dungeon World blueprints designated as official gilda models, managed by administrators.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "class": { "type": "string" },
+        "type": { "type": "string", "enum": ["Core Class", "Arcane Class", "Shadow Class", "Divine Class"] },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "avatar": { "type": "string" },
+        "defaultStats": { "$ref": "#/entities/Character" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "class", "type", "description", "icon", "avatar", "defaultStats"]
+    },
+    "CommunityCharacter": {
+      "title": "CommunityCharacter",
+      "description": "Wanderer shared character cards uploaded to the public realm.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "class": { "type": "string" },
+        "level": { "type": "integer" },
+        "author": { "type": "string" },
+        "authorEmail": { "type": "string" },
+        "rating": { "type": "number" },
+        "description": { "type": "string" },
+        "avatar": { "type": "string" },
+        "characterData": { "$ref": "#/entities/Character" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "class", "level", "author", "authorEmail", "rating", "description", "avatar", "characterData"]
+    },
+    "Mail": {
+      "title": "Mail",
+      "description": "RPG-styled correspondence sent from administrators to players.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "recipientEmail": { "type": "string" },
+        "subject": { "type": "string" },
+        "content": { "type": "string" },
+        "senderEmail": { "type": "string" },
+        "type": { "type": "string", "enum": ["promotion", "warning"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "recipientEmail", "subject", "content", "senderEmail", "type", "read", "createdAt"]
+    },
+    "BannedUser": {
+      "title": "BannedUser",
+      "description": "User emails completely restricted from interacting due to improper behaviour.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "bannedBy": { "type": "string" },
+        "reason": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "bannedBy"]
+    }
+  },
+  "firestore": {
+    "/characters/{characterId}": {
+      "schema": "Character",
+      "description": "Collection of playable character sheets."
+    },
+    "/admins/{email}": {
+      "schema": "Admin",
+      "description": "Nominations for Temple admins."
+    },
+    "/official_templates/{templateId}": {
+      "schema": "OfficialTemplate",
+      "description": "Managed official class starter guides."
+    },
+    "/community_characters/{communityId}": {
+      "schema": "CommunityCharacter",
+      "description": "Cards listed in the public hall."
+    },
+    "/mails/{mailId}": {
+      "schema": "Mail",
+      "description": "Simulated parchment mailboxes."
+    },
+    "/banned_users/{email}": {
+      "schema": "BannedUser",
+      "description": "Banned emails collection."
+    }
+  }
+}
