@@ -94,17 +94,6 @@ service cloud.firestore {
         && data.createdAt is string;
     }
 
-    function isValidUserProfile(data, userId) {
-      return data.uid is string && data.uid == userId
-        && data.email is string && data.email.size() > 3 && data.email.size() <= 100
-        && data.emailLower is string && data.emailLower == data.email.lower()
-        && (!data.keys().hasAll(['displayName']) || (data.displayName is string && data.displayName.size() <= 120))
-        && (!data.keys().hasAll(['photoURL']) || (data.photoURL is string && data.photoURL.size() <= 2000))
-        && data.providerIds is list
-        && data.createdAt is string
-        && data.lastLoginAt is string;
-    }
-
     function isValidCharacter(data) {
       return data.id is string && data.id.size() <= 128
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
@@ -167,11 +156,13 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.auth.uid == userId
-        && isValidUserProfile(incoming(), userId);
+        && incoming().uid == userId
+        && incoming().email is string;
 
       allow update: if isSignedIn()
         && request.auth.uid == userId
-        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == userId
+        && incoming().email is string
         && incoming().uid == existing().uid;
 
       allow delete: if isMasterAdmin();

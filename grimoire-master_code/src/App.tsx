@@ -68,6 +68,7 @@ export default function App() {
     }, { merge: true }).catch((error) => {
       // Non-blocking: user profile tracking must not break app login flow.
       console.error('Unable to sync user profile in Firestore:', error);
+      notify.error('Sync utenti fallito: aggiorna e pubblica le regole Firestore per la collection users.');
     });
   };
 

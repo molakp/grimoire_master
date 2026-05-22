@@ -29,6 +29,13 @@ export interface Character {
   locked?: boolean;
   preparedSpellNames?: string[];
   selectedMoves?: string[];
+  appearance?: {
+    eyes?: string;
+    head?: string;
+    clothes?: string;
+    body?: string;
+  };
+  originTrait?: string;
   ownerId?: string;
   createdAt?: string;
   updatedAt?: string;

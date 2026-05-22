@@ -4,6 +4,7 @@ import { CHARACTER_TEMPLATES, COMMUNITY_CHARACTERS } from '../data';
 import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Skull, AlertCircle } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import AdminCourt from './AdminCourt';
+import CharacterCreationWizard from './CharacterCreationWizard';
 
 interface DashboardProps {
   onImportCharacter: (character: Character) => void;
@@ -93,6 +94,10 @@ export default function Dashboard({
   const [newTemplateIcon, setNewTemplateIcon] = useState('swords');
   const [newTemplateLayoutBase, setNewTemplateLayoutBase] = useState<'thalric' | 'grom' | 'allister'>('thalric');
 
+  // Character creation wizard state
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [wizardTemplateId, setWizardTemplateId] = useState<string | undefined>(undefined);
+
   // Share character to community card index state
   const [characterToPublish, setCharacterToPublish] = useState<Character | null>(null);
   const [publishDescriptionInput, setPublishDescriptionInput] = useState('');
@@ -131,15 +136,16 @@ export default function Dashboard({
     });
   }, [searchQuery, classFilter, minLevelFilter, ratingFilter, communityCharacters]);
 
-  const handleImportTemplate = (template: CharacterTemplate) => {
-    const newChar: Character = {
-      ...JSON.parse(JSON.stringify(template.defaultStats)),
-      id: `clone_${template.id.replace('t_', '')}_${Date.now()}`,
-      name: `${template.defaultStats.name.replace('Vala', 'Avelina').replace('Grom', 'Lothar')}`,
-      isCustom: true,
-      locked: false,
-    };
-    onImportCharacter(newChar);
+  const handleStartWizard = (template?: CharacterTemplate) => {
+    setWizardTemplateId(template?.id);
+    setIsWizardOpen(true);
+  };
+
+  const handleCreateFromWizard = (character: Character) => {
+    onImportCharacter(character);
+    setIsWizardOpen(false);
+    setWizardTemplateId(undefined);
+    setActiveTab('my-characters');
   };
 
   const handleCreateOfficialTemplateSubmit = async (e: FormEvent) => {
@@ -419,38 +425,10 @@ export default function Dashboard({
                 </p>
               </div>
               <button
-                onClick={() => {
-                  const randomId = `custom_${Date.now()}`;
-                  onImportCharacter({
-                    id: randomId,
-                    name: 'Nuovo Mago Arcano',
-                    class: 'Il Mago',
-                    level: 1,
-                    experience: 0,
-                    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBFfpe2H6MyZ4QnxEf0WLBGmyV5spTrtQ7wJrNaVNww3EBEeCgvp35MXxLywP69ypKhXCuhZA3yvKjr2UaFkw8x8RziqPgYopg2PnN4Gpi2vzkbe96pIVXowzL77Ms-bvUUqZMQch6009Qp6HM7Z89-yjTtw7gnRM2YXHC8jHed3YS51-6okjbb3ldtF1_n21FBORJ3U82m385UNiUZQWxYHnLePjsIs-mWmISeswkq3BqwFilSSe-tsWR_Piaro3mJ2oqKqKB2Wco',
-                    attributes: { INT: 16, FOR: 8, DES: 12, COS: 13, SAG: 15, CAR: 9 },
-                    vitality: { max: 16, current: 16 },
-                    armor: 1,
-                    damageDie: 'D4',
-                    race: 'ELFO',
-                    alignment: 'NEUTRALE',
-                    alignmentDesc: 'Scopri qualcosa riguardo a un mistero della magia.',
-                    bonds: [
-                      { companion: '', statement: 'ricoprirà un ruolo importante negli eventi a venire.' },
-                      { companion: '', statement: 'mi sta nascondendo un segreto importante.' }
-                    ],
-                    gear: [
-                      { name: 'Libro Incantesimi', weight: 1 },
-                      { name: 'Bastone (D4)', weight: 1 }
-                    ],
-                    maxWeight: 8,
-                    locked: false,
-                    preparedSpellNames: ['Luce']
-                  });
-                }}
+                onClick={() => handleStartWizard()}
                 className="px-4 py-2 bg-gradient-to-r from-primary-container to-primary text-on-primary font-mono text-xs font-bold rounded shadow-lg flex items-center gap-1.5 hover:scale-105 transition-all"
               >
-                <UserPlus size={16} /> CREA NUOVO PERSONAGGIO
+                <UserPlus size={16} /> AVVIA RITUALE PERSONAGGIO
               </button>
             </div>
 
@@ -628,12 +606,12 @@ export default function Dashboard({
 
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => handleImportTemplate(template)}
+                        onClick={() => handleStartWizard(template)}
                         className={`py-3 px-4 bg-gradient-to-r from-tertiary-container to-primary flex items-center justify-center gap-2 text-on-tertiary-container text-xs font-mono font-bold rounded-sm hover:scale-[1.03] active:scale-95 duration-200 shadow-md ${
                           isGridView ? 'w-full' : 'w-48'
                         }`}
                       >
-                        <span>IMPORTA TEMPLATE</span>
+                        <span>AVVIA WIZARD</span>
                       </button>
                     </div>
                   </div>
@@ -1094,6 +1072,18 @@ export default function Dashboard({
             </form>
           </div>
         </div>
+      )}
+
+      {isWizardOpen && (
+        <CharacterCreationWizard
+          templates={[...CHARACTER_TEMPLATES, ...officialTemplates]}
+          initialTemplateId={wizardTemplateId}
+          onClose={() => {
+            setIsWizardOpen(false);
+            setWizardTemplateId(undefined);
+          }}
+          onCreateCharacter={handleCreateFromWizard}
+        />
       )}
     </div>
   );
