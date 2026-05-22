@@ -89,3 +89,14 @@ export interface Admin {
   createdAt: string;
 }
 
+export interface UserProfile {
+  uid: string;
+  email: string;
+  emailLower: string;
+  displayName?: string;
+  photoURL?: string;
+  providerIds: string[];
+  createdAt: string;
+  lastLoginAt: string;
+}
+

@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, FormEvent } from 'react';
-import { Admin, BannedUser } from '../types';
+import { Admin, BannedUser, UserProfile } from '../types';
 import { UserPlus, ShieldAlert, ShieldCheck, Mail, Trash2, Send, Lock, UserX, FileText, Users, Search } from 'lucide-react';
 
 interface AdminCourtProps {
   adminsList: Admin[];
   bannedList: BannedUser[];
+  knownUsers: UserProfile[];
   communityCharacters?: any[];
   onPromoteAdmin: (email: string) => Promise<void>;
   onRemoveAdmin: (email: string) => Promise<void>;
@@ -17,6 +18,7 @@ interface AdminCourtProps {
 export default function AdminCourt({
   adminsList,
   bannedList,
+  knownUsers,
   communityCharacters = [],
   onPromoteAdmin,
   onRemoveAdmin,
@@ -56,11 +58,19 @@ export default function AdminCourt({
   // Compile all known unique emails in the system
   const allEmails = useMemo(() => {
     const emails = new Set<string>();
+    knownUsers.forEach((user) => { if (user.email) emails.add(user.email.toLowerCase().trim()); });
     adminsList.forEach(a => { if (a.email) emails.add(a.email.toLowerCase().trim()); });
     bannedList.forEach(b => { if (b.email) emails.add(b.email.toLowerCase().trim()); });
     communityCharacters?.forEach(c => { if (c.authorEmail) emails.add(c.authorEmail.toLowerCase().trim()); });
     return Array.from(emails);
-  }, [adminsList, bannedList, communityCharacters]);
+  }, [knownUsers, adminsList, bannedList, communityCharacters]);
+
+  const formatLoginDate = (value?: string) => {
+    if (!value) return 'Data accesso non disponibile';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleString('it-IT');
+  };
 
   // Compile a comprehensive list of all known users in the system
   const systemUsers = useMemo(() => {
@@ -74,6 +84,21 @@ export default function AdminCourt({
     }>();
 
     const masterEmail = "silvestrofrisullo@gmail.com";
+
+    knownUsers.forEach((user) => {
+      const email = user.emailLower || user.email.toLowerCase().trim();
+      if (!email) return;
+
+      userMap.set(email, {
+        email: user.email,
+        name: user.displayName?.trim() || email.split('@')[0],
+        role: 'Membro Gilda 📜',
+        type: 'member',
+        createdAt: user.lastLoginAt || user.createdAt,
+        details: `Ultimo accesso: ${formatLoginDate(user.lastLoginAt || user.createdAt)}`
+      });
+    });
+
     userMap.set(masterEmail, {
       email: masterEmail,
       name: 'Silvestro Frisullo',
@@ -86,13 +111,17 @@ export default function AdminCourt({
     adminsList.forEach(admin => {
       const email = admin.email.toLowerCase().trim();
       const isMaster = email === masterEmail || admin.role === 'master';
+      const existing = userMap.get(email);
+
       userMap.set(email, {
         email: admin.email,
-        name: isMaster ? 'Silvestro Frisullo' : email.split('@')[0],
+        name: isMaster ? 'Silvestro Frisullo' : (existing?.name || email.split('@')[0]),
         role: isMaster ? 'Master Admin ⚜️' : 'Grimoire Admin 🛡️',
         type: isMaster ? 'master' : 'admin',
         createdAt: admin.createdAt,
-        details: `Nominato da ${admin.promotedBy?.split('@')[0] || 'Sistema'}`
+        details: existing?.details
+          ? `${existing.details} • Nominato da ${admin.promotedBy?.split('@')[0] || 'Sistema'}`
+          : `Nominato da ${admin.promotedBy?.split('@')[0] || 'Sistema'}`
       });
     });
 
@@ -124,9 +153,10 @@ export default function AdminCourt({
 
     bannedList.forEach(ban => {
       const email = ban.email.toLowerCase().trim();
+      const existing = userMap.get(email);
       userMap.set(email, {
         email: ban.email,
-        name: email.split('@')[0],
+        name: existing?.name || email.split('@')[0],
         role: 'Anime Esiliata 🚷',
         type: 'banned',
         createdAt: ban.createdAt,
@@ -135,7 +165,7 @@ export default function AdminCourt({
     });
 
     return Array.from(userMap.values());
-  }, [adminsList, bannedList, communityCharacters]);
+  }, [knownUsers, adminsList, bannedList, communityCharacters]);
 
   // Filtered system users based on the search query
   const filteredSystemUsers = useMemo(() => {

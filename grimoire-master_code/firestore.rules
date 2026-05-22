@@ -94,6 +94,17 @@ service cloud.firestore {
         && data.createdAt is string;
     }
 
+    function isValidUserProfile(data, userId) {
+      return data.uid is string && data.uid == userId
+        && data.email is string && data.email.size() > 3 && data.email.size() <= 100
+        && data.emailLower is string && data.emailLower == data.email.lower()
+        && (!data.keys().hasAll(['displayName']) || (data.displayName is string && data.displayName.size() <= 120))
+        && (!data.keys().hasAll(['photoURL']) || (data.photoURL is string && data.photoURL.size() <= 2000))
+        && data.providerIds is list
+        && data.createdAt is string
+        && data.lastLoginAt is string;
+    }
+
     function isValidCharacter(data) {
       return data.id is string && data.id.size() <= 128
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
@@ -150,19 +161,35 @@ service cloud.firestore {
         && resource.data.ownerId == request.auth.uid;
     }
 
-    // 2. TEMPLE ADMINISTRATORS
+    // 2. AUTHENTICATED USER PROFILES
+    match /users/{userId} {
+      allow read: if isSignedIn() && (isMasterAdmin() || request.auth.uid == userId);
+
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming(), userId);
+
+      allow update: if isSignedIn()
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid;
+
+      allow delete: if isMasterAdmin();
+    }
+
+    // 3. TEMPLE ADMINISTRATORS
     match /admins/{email} {
       allow read: if isSignedIn() && !isBanned() && (isMasterAdmin() || request.auth.token.email.lower() == email);
       allow write: if isMasterAdmin();
     }
 
-    // 3. OFFICIAL BLUEPRINT TEMPLATES
+    // 4. OFFICIAL BLUEPRINT TEMPLATES
     match /official_templates/{templateId} {
       allow read: if isSignedIn() && !isBanned();
       allow write: if isAdmin() && !isBanned();
     }
 
-    // 4. PUBLIC COMMUNITY REALM CHARACTERS
+    // 5. PUBLIC COMMUNITY REALM CHARACTERS
     match /community_characters/{communityId} {
       allow read: if isSignedIn() && !isBanned();
       allow create: if isSignedIn() && !isBanned() && isValidCommunityCharacter(incoming()) && incoming().authorEmail.lower() == request.auth.token.email.lower();
@@ -170,7 +197,7 @@ service cloud.firestore {
       allow delete: if isSignedIn() && !isBanned() && (isAdmin() || existing().authorEmail.lower() == request.auth.token.email.lower());
     }
 
-    // 5. PARCHMENT CORRESPONDENCE MAILBOXES
+    // 6. PARCHMENT CORRESPONDENCE MAILBOXES
     match /mails/{mailId} {
       allow read: if isSignedIn() && !isBanned() && (request.auth.token.email.lower() == resource.data.recipientEmail.lower() || isMasterAdmin());
       allow create: if isSignedIn() && !isBanned() && isValidMail(incoming()) && (isMasterAdmin() || incoming().senderEmail.lower() == request.auth.token.email.lower());
@@ -178,7 +205,7 @@ service cloud.firestore {
       allow delete: if isSignedIn() && !isBanned() && (request.auth.token.email.lower() == resource.data.recipientEmail.lower() || isMasterAdmin());
     }
 
-    // 6. BANNED USERS COVEN
+    // 7. BANNED USERS COVEN
     match /banned_users/{email} {
       allow read: if isSignedIn() && !isBanned() && (isMasterAdmin() || request.auth.token.email.lower() == email);
       allow write: if isMasterAdmin();

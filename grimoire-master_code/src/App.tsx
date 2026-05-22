@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Character, DiceRollLog, Mail, BannedUser, Admin, CharacterTemplate } from './types';
+import { Character, DiceRollLog, Mail, BannedUser, Admin, CharacterTemplate, UserProfile } from './types';
 import { INITIAL_CHARACTER_THALRIC } from './data';
 import Dashboard from './components/Dashboard';
 import CharacterSheet from './components/CharacterSheet';
@@ -37,12 +37,38 @@ export default function App() {
   const [unreadMails, setUnreadMails] = useState<Mail[]>([]);
   const [officialTemplates, setOfficialTemplates] = useState<CharacterTemplate[]>([]);
   const [communityCharacters, setCommunityCharacters] = useState<any[]>([]);
+  const [knownUsers, setKnownUsers] = useState<UserProfile[]>([]);
 
   // Recognize Master Admin helper
   const isUserMasterAdmin = (email: string | null | undefined): boolean => {
     if (!email) return false;
     const normalized = email.toLowerCase().trim();
     return normalized === 'silvestrofrisullo@gmail.com' || normalized === 'silvestrofrisullo.gmail.com';
+  };
+
+  const upsertUserProfile = (firebaseUser: FirebaseUser) => {
+    const email = firebaseUser.email?.toLowerCase().trim();
+    if (!email) return;
+
+    const providerIds = firebaseUser.providerData
+      .map((provider) => provider.providerId)
+      .filter((providerId): providerId is string => Boolean(providerId));
+
+    const nowIso = new Date().toISOString();
+
+    void setDoc(doc(db, 'users', firebaseUser.uid), {
+      uid: firebaseUser.uid,
+      email,
+      emailLower: email,
+      displayName: firebaseUser.displayName || '',
+      photoURL: firebaseUser.photoURL || '',
+      providerIds,
+      createdAt: firebaseUser.metadata.creationTime || nowIso,
+      lastLoginAt: firebaseUser.metadata.lastSignInTime || nowIso,
+    }, { merge: true }).catch((error) => {
+      // Non-blocking: user profile tracking must not break app login flow.
+      console.error('Unable to sync user profile in Firestore:', error);
+    });
   };
 
   // Load characters on mount & sync with Auth/Firestore
@@ -65,6 +91,7 @@ export default function App() {
         const uEmail = (firebaseUser.email || '').toLowerCase().trim();
         const isMaster = isUserMasterAdmin(uEmail);
         setIsAdminState(isMaster);
+        upsertUserProfile(firebaseUser);
 
         // 1. Check ban status
         const banSub = onSnapshot(doc(db, 'banned_users', uEmail), (snapshot) => {
@@ -174,6 +201,29 @@ export default function App() {
 
         // 7. Master Admin special management queries
         if (isMaster) {
+          const mUsersSub = onSnapshot(collection(db, 'users'), (snapshot) => {
+            const list: UserProfile[] = [];
+            snapshot.forEach((userDoc) => {
+              const data = userDoc.data() as Partial<UserProfile>;
+              if (!data.uid || !data.email) return;
+
+              list.push({
+                uid: data.uid,
+                email: data.email,
+                emailLower: data.emailLower || data.email.toLowerCase().trim(),
+                displayName: data.displayName || '',
+                photoURL: data.photoURL || '',
+                providerIds: Array.isArray(data.providerIds) ? data.providerIds : [],
+                createdAt: data.createdAt || '',
+                lastLoginAt: data.lastLoginAt || data.createdAt || ''
+              });
+            });
+
+            list.sort((a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime());
+            setKnownUsers(list);
+          }, () => {});
+          activeListeners.push(mUsersSub);
+
           const mAdminsSub = onSnapshot(collection(db, 'admins'), (snapshot) => {
             const list: Admin[] = [];
             snapshot.forEach((doc) => {
@@ -210,6 +260,7 @@ export default function App() {
         setCommunityCharacters([]);
         setAdminsList([]);
         setBannedList([]);
+        setKnownUsers([]);
 
         const saved = localStorage.getItem('grimoire_characters');
         if (saved) {
@@ -661,6 +712,7 @@ export default function App() {
           allMails={allMails}
           adminsList={adminsList}
           bannedList={bannedList}
+          knownUsers={knownUsers}
 
           onPromoteAdmin={handlePromoteAdmin}
           onRemoveAdmin={handleRemoveAdmin}

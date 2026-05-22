@@ -1,5 +1,5 @@
 import { useState, useMemo, FormEvent } from 'react';
-import { CharacterTemplate, Character, Spell, Mail, BannedUser, Admin } from '../types';
+import { CharacterTemplate, Character, Spell, Mail, BannedUser, Admin, UserProfile } from '../types';
 import { CHARACTER_TEMPLATES, COMMUNITY_CHARACTERS } from '../data';
 import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Skull, AlertCircle } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
@@ -24,6 +24,7 @@ interface DashboardProps {
   allMails: Mail[];
   adminsList: Admin[];
   bannedList: BannedUser[];
+  knownUsers: UserProfile[];
 
   onPromoteAdmin: (email: string) => Promise<void>;
   onRemoveAdmin: (email: string) => Promise<void>;
@@ -55,6 +56,7 @@ export default function Dashboard({
   allMails = [],
   adminsList = [],
   bannedList = [],
+  knownUsers = [],
 
   onPromoteAdmin,
   onRemoveAdmin,
@@ -366,6 +368,7 @@ export default function Dashboard({
             <AdminCourt
               adminsList={adminsList}
               bannedList={bannedList}
+              knownUsers={knownUsers}
               communityCharacters={communityCharacters}
               onPromoteAdmin={onPromoteAdmin}
               onRemoveAdmin={onRemoveAdmin}

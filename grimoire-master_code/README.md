@@ -47,7 +47,7 @@ Emulators:
 ## Deploy To Firebase Hosting
 
 1. Login:
-   `npx firebase login`
+   `npx firebase-tools login`
 2. Deploy Firestore rules:
    `npm run deploy:rules`
 3. Deploy hosting:
