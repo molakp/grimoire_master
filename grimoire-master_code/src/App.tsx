@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Character, DiceRollLog, Mail, BannedUser, Admin, CharacterTemplate, UserProfile } from './types';
 import { INITIAL_CHARACTER_THALRIC } from './data';
+import { useTemplates } from './hooks/useTemplates';
 import Dashboard from './components/Dashboard';
 import CharacterSheet from './components/CharacterSheet';
 import Spellbook from './components/Spellbook';
@@ -38,6 +39,7 @@ export default function App() {
   const [officialTemplates, setOfficialTemplates] = useState<CharacterTemplate[]>([]);
   const [communityCharacters, setCommunityCharacters] = useState<any[]>([]);
   const [knownUsers, setKnownUsers] = useState<UserProfile[]>([]);
+  const { templates: allTemplates } = useTemplates();
 
   // Recognize Master Admin helper
   const isUserMasterAdmin = (email: string | null | undefined): boolean => {
@@ -672,6 +674,7 @@ export default function App() {
         /* ACTIVE VIEW - SELECTED RPG EROE SHEET */
         <CharacterSheet
           character={activeCharacter}
+          template={allTemplates.find(t => t.class === activeCharacter.class)}
           onUpdateCharacter={handleUpdateCharacter}
           onBackToDashboard={() => setActiveCharacterId(null)}
           onRollStat={handleRollStat}
@@ -681,7 +684,11 @@ export default function App() {
             setActiveStatPreset(null); // clean loaded preset on screen navigating
           }}
           renderSpellsTab={() => (
-            <Spellbook character={activeCharacter} onUpdateCharacter={handleUpdateCharacter} />
+            <Spellbook
+              character={activeCharacter}
+              onUpdateCharacter={handleUpdateCharacter}
+              spellList={allTemplates.find(t => t.class === activeCharacter.class)?.availableSpells}
+            />
           )}
           currentUser={currentUser}
           onSignIn={handleSignIn}

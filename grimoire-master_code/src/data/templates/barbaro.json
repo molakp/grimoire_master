@@ -3,56 +3,83 @@
   "name": "The Barbarian",
   "class": "Il Barbaro",
   "type": "Primal Class",
-  "description": "Guerriero primitivo di furia indomabile. Estraneo al mondo civilizzato, devastante in battaglia.",
+  "description": "Guerriero primitivo guidato da appetiti estremi e forza brutale. Estraneo al mondo civilizzato, devastante in battaglia.",
   "icon": "bolt",
   "avatar": "/images/classes/khamisi-la-sfregiatrice-barbara.jpeg",
   "races": [
-    { "id": "estraneo", "name": "Estraneo", "bonusAttribute": "COS", "bonusValue": 1, "moveDescription": "Quando rispondi a una domanda sulla tua terra natia o sul tuo popolo, guadagni 1 PE." }
+    {
+      "id": "estraneo",
+      "name": "Estraneo",
+      "bonusAttribute": null,
+      "bonusValue": 0,
+      "moveDescription": "Sarai elfo, nano, mezzuomo o umano, ma tu e la tua gente non siete di queste parti. All'inizio di ogni sessione, il GM ti farà una domanda a proposito della tua terra madre, di perché te ne sei andato o di cosa ti sei lasciato indietro. Se rispondi guadagni 1 PE."
+    }
   ],
   "alignments": [
-    { "id": "caotico", "name": "Caotico", "description": "Ignora una convenzione del mondo civilizzato per seguire i tuoi istinti." },
-    { "id": "neutrale","name": "Neutrale","description": "Insegna a qualcuno le vie del tuo popolo." }
+    { "id": "caotico",  "name": "Caotico",  "description": "Ignora una convenzione del mondo civilizzato." },
+    { "id": "neutrale", "name": "Neutrale", "description": "Insegna a qualcuno le vie del tuo popolo." }
   ],
   "appearanceOptions": {
     "eyes":    ["Occhi tormentati", "Occhi selvaggi", "Occhi velati"],
-    "head":    ["Cranio rasato", "Capelli selvaggi", "Capelli intrecciati di perline"],
-    "clothes": ["Stracci laceri", "Sete opulente rubate", "Abiti da accattone"],
-    "body":    ["Muscoli possenti", "Corpo ossuto", "Corpo agile e cicatrizzato"]
+    "head":    ["Strani tatuaggi", "Gioielli insoliti", "Inalterato da decorazioni"],
+    "clothes": ["Stracci", "Sete", "Abiti da accattone", "Abiti non appropriati al clima"],
+    "body":    ["Muscoli possenti", "Gambe lunghe", "Corpo ossuto", "Corpo agile"]
   },
-  "originTrait": "Appetiti Erculei — la tua fame di gloria, cibo e conquista porta caos e grandi gesta. Quando intraprendi qualcosa di eroico nell'eccesso o nell'intensità ottieni +1 al tiro.",
+  "originTrait": "Appetiti Erculei — scegli due appetiti tra: Distruzione pura, Potere sugli altri, Piaceri mortali, Conquista, Ricchezze e proprietà, Fama e gloria. Quando persegui questi appetiti tiri 1d6+1d8 invece di 2d6. Se il d6 è il più alto, il GM introduce una complicazione.",
   "classBonus": { "attribute": "FOR", "value": 2 },
   "startingHp": 8,
   "damageDie": "D10",
   "startingArmor": 0,
   "startingLoad": 8,
+  "startingMoveChoices": [
+    { "name": "Coperto d'Acciaio",             "description": "Ignori l'etichetta ingombrante sull'armatura che indossi." },
+    { "name": "Mai Impacciato, Sempre Illeso", "description": "Fintanto che sei al di sotto del tuo Carico e non indossi armatura né porti uno scudo, prendi +1 armatura." }
+  ],
   "classMoves": [
-    { "name": "Furia",              "isStarting": true,  "description": "Quando entri in una furia di battaglia, tira+For. Con un 10+ scegli due: infliggi +1d6 danni / prendi -2 danni / spaventa un nemico costringendolo a ritrarsi. Con un 7–9 scegli uno ma anche il GM fa una mossa." },
-    { "name": "Forza Bruta",        "isStarting": true,  "description": "Quando usi forza bruta per rompere, sfondare o sollevare qualcosa, tira+For. Con un 7+ ce la fai. Con un 10+ scegli anche: non crei danni collaterali / non ti stanchi." },
-    { "name": "Estraneo",           "isStarting": true,  "description": "Sei estraneo a questo mondo. Quando incontri una stranezza culturale, tecnologia o magia che non hai mai visto, puoi chiedere al GM di spiegarti come funziona senza tirare." },
-    { "name": "Pelle di Ferro",     "isStarting": false, "description": "Hai +1 armatura in aggiunta a qualsiasi armatura tu indossi." },
-    { "name": "Carica Devastante",  "isStarting": false, "description": "Quando carichi verso un nemico urlando, tira+For. Con un 7+ lo colpisci prima che agisca. Con un 10+ il nemico è anche instabile o spaventato a tua scelta." },
-    { "name": "Istinto Primordiale","isStarting": false, "description": "Non vieni mai colto di sorpresa. Quando qualcuno ti tende un'imboscata, agisci ugualmente per primo." },
-    { "name": "Resistenza Selvaggia","isStarting": false,"description": "Ignora i primi 2 danni di ciascun attacco, anche se non indossi armatura." },
-    { "name": "Guerra-Grido",       "isStarting": false, "description": "Quando urli in battaglia, tutti i tuoi alleati prendono +1 ai danni per il resto dello scontro corrente." }
+    { "name": "Appetiti Erculei",       "isStarting": true,  "description": "Gli altri si accontenteranno di un semplice sorso di vino o del potere su una manciata di servi, ma tu vuoi di più. Scegli due appetiti. Se devi tirare per una mossa mentre persegui questi appetiti, tiri 1d6+1d8 invece di 2d6. Se il d6 è il dado più alto dei due, il GM introdurrà una complicazione o un pericolo derivante dalle tue azioni avventate." },
+    { "name": "Dominare la Morte",      "isStarting": true,  "description": "Prendi +1 continuato ai tiri di ultimo respiro. Quando esali il tuo ultimo respiro, con un 7–9 sei tu a fare un'offerta alla Morte in cambio della tua vita. Se la Morte accetta ti riporterà in vita. Se no, morirai." },
+    { "name": "Un Fascio di Muscoli",   "isStarting": true,  "description": "Mentre impugni un'arma, ottiene le etichette devastante e possente." },
+    { "name": "Cosa Stai Aspettando?",  "isStarting": true,  "description": "Quando lanci una sfida ai tuoi nemici, tira+Cos. Con un 10+ ti trattano come la minaccia più importante di cui occuparsi e ignorano i tuoi compagni, prendi +2 danni continuati contro di loro. Con un 7–9 solo alcuni cadono preda della tua provocazione." },
+    { "name": "Ho Ancora Fame",         "isStarting": false, "description": "Scegli un altro appetito." },
+    { "name": "Fame per la Distruzione","isStarting": false, "description": "Prendi una mossa dalla lista di classe del guerriero, bardo o ladro. Non puoi prendere mosse multiclasse." },
+    { "name": "Il Mio Amore per Te È Come un Carro", "isStarting": false, "description": "Quando ti metti in mostra con una prova di forza, nomina uno dei presenti che hai impressionato e prendi +1 al prossimo tiro di parlamentare con lui." },
+    { "name": "Il Meglio della Vita",   "isStarting": false, "description": "Alla fine della sessione, se durante questa sessione hai sconfitto i tuoi nemici, li hai inseguiti mentre fuggono, o hai sentito i lamenti dei loro cari guadagna un PE." },
+    { "name": "Giramondo",              "isStarting": false, "description": "Hai girato in lungo e in largo. Quando arrivi in un luogo chiedi al GM di importanti tradizioni, rituali, etc. Ti dirà ciò che hai bisogno di sapere." },
+    { "name": "Usurpatore",             "isStarting": false, "description": "Quando dimostri di essere più forte di una persona importante, prendi +1 al prossimo tiro con i loro seguaci, subalterni e sostenitori." },
+    { "name": "Il Khan dei Khan",       "isStarting": false, "description": "I tuoi gregari accettano sempre la soddisfazione arbitraria di uno dei tuoi appetiti come pagamento, in sostituzione al loro normale costo." },
+    { "name": "Sansone",                "isStarting": false, "description": "Puoi subire una debilitazione per liberarti immediatamente di qualsiasi costrizione fisica o mentale." },
+    { "name": "Spacca!",                "isStarting": false, "description": "Quando tagli e spacchi, con un 12+ infliggi i tuoi danni e scegli qualcosa di fisico che il tuo nemico ha (un'arma, la sua posizione, un arto): lo perde." },
+    { "name": "Fame Insaziabile",       "isStarting": false, "description": "Quando subisci danno puoi scegliere di prendere -1 continuato finché non sazi uno dei tuoi appetiti invece di subire il danno. Se hai già la penalità non puoi fare questa scelta." },
+    { "name": "Occhio ai Punti Deboli", "isStarting": false, "description": "Quando discerni realtà aggiungi «Cosa qui è debole o vulnerabile?» alla lista di domande che puoi fare." },
+    { "name": "Sempre in Movimento",    "isStarting": false, "description": "Quando sfidi il pericolo causato da un movimento (ad esempio cadere da un ponte stretto o superare di corsa una guardia armata) prendi +1." },
+    { "name": "Un Buon Giorno per Morire", "isStarting": false, "description": "Finché hai un numero di PF rimanenti pari o inferiori alla tua Cos (o 1, qualunque sia il più alto) prendi +1 continuato." },
+    { "name": "Ammazzali Tutti",        "isStarting": false, "description": "Richiede Fame per la Distruzione. Prendi un'altra mossa dalla lista di classe del guerriero, bardo o ladro. Non puoi prendere mosse multiclasse." },
+    { "name": "Urlo di Battaglia",      "isStarting": false, "description": "Quando entri in battaglia con una dimostrazione di forza (un urlo, grida d'incitazione, una danza di guerra) tira+Car. Con un 10+ entrambi. Con un 7–9 scegli uno: i tuoi alleati sono incoraggiati e prendono +1 al prossimo tiro; i tuoi nemici si spaventano e agiscono di conseguenza." },
+    { "name": "Un Segno di Forza",      "isStarting": false, "description": "Quando prendi questa mossa e passi del tempo a riflettere sulle tue glorie passate puoi marchiarti con un simbolo della tua forza. Qualunque creatura mortale e intelligente che vede questo simbolo capisce istintivamente che sei un avversario temibile." },
+    { "name": "Ancora! Ancora!",        "isStarting": false, "description": "Quando soddisfi un appetito fino al suo estremo puoi scegliere di risolverlo. Cancellalo e guadagna un PE. Scegli un nuovo appetito dalla lista o scrivine uno nuovo." },
+    { "name": "Quello che Bussa",       "isStarting": false, "description": "Quando sfidi il pericolo, con un 12+ ritorci il pericolo contro se stesso, il GM descriverà come." },
+    { "name": "Sana Diffidenza",        "isStarting": false, "description": "Ogni volta che la magia corrotta controllata dai mortali ti obbliga a sfidare il pericolo, considera qualunque risultato di 6− come fosse un 7–9." },
+    { "name": "Per il Dio del Sangue",  "isStarting": false, "description": "Sei stato iniziato alla via del sacrificio. Scegli qualcosa che i tuoi dei ritengono importante: oro, sangue, ossa, o simili. Quando sacrifichi questa cosa, tira+Sag. Con un 10+ il GM ti offre un indizio o un beneficio. Con un 7–9 il sacrificio non basta e i tuoi dei prendono parte della tua carne, ma ti ricompensano egualmente." }
   ],
   "gearChoices": [
     [
-      { "name": "Ascia a due mani (+1 danni, a due mani)", "weight": 2 },
-      { "name": "Spada lunga (media, +1 danni) + scudo (+1 armatura)", "weight": 3 }
+      { "name": "Ascia (media)",                "weight": 1 },
+      { "name": "Spada lunga (media, +1 danno)","weight": 2 }
     ],
     [
-      { "name": "2 asce da lancio (da lancio, vicino)", "weight": 1 },
-      { "name": "Arco primitivo (vicino) + frecce (3 munizioni)", "weight": 2 }
-    ],
-    [
-      { "name": "Razioni da viaggio (5 utilizzi)", "weight": 1 },
-      { "name": "Trofeo di un nemico sconfitto", "weight": 0 }
+      { "name": "Attrezzi da avventuriero (5 utilizzi) + razioni da dungeon (5 utilizzi)", "weight": 2 },
+      { "name": "Armatura di maglia (armatura 1)",                                         "weight": 1 }
     ]
+  ],
+  "startingGearFixed": [
+    { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 },
+    { "name": "Pugnale (corto)",                 "weight": 1 },
+    { "name": "Ricordo della tua terra o di un posto che hai visitato", "weight": 0 }
   ],
   "bonds": [
     "___ è gracile e sciocco, ma mi fa divertire.",
     "Le vie di ___ sono strane e mi confondono.",
-    "___ finisce sempre nei guai: devo proteggerlo.",
+    "___ finisce sempre nei guai: devo proteggerlo da sé stesso.",
     "___ condivide la mia fame di gloria; la terra tremerà al nostro passaggio!"
   ],
   "defaultStats": {
@@ -62,21 +89,21 @@
     "class": "Il Barbaro",
     "experience": 0,
     "avatar": "/images/classes/khamisi-la-sfregiatrice-barbara.jpeg",
-    "attributes": { "FOR": 16, "DES": 12, "COS": 15, "INT": 8, "SAG": 9, "CAR": 13 },
+    "attributes": { "FOR": 16, "DES": 9, "COS": 15, "INT": 8, "SAG": 13, "CAR": 11 },
     "vitality": { "max": 23, "current": 23 },
     "armor": 0,
     "damageDie": "D10",
     "race": "ESTRANEO",
     "alignment": "CAOTICO",
-    "alignmentDesc": "Ignora una convenzione del mondo civilizzato per seguire i tuoi istinti.",
+    "alignmentDesc": "Ignora una convenzione del mondo civilizzato.",
     "bonds": [
       { "companion": "", "statement": "condivide la mia fame di gloria; la terra tremerà al nostro passaggio!" },
-      { "companion": "", "statement": "finisce sempre nei guai: devo proteggerlo." }
+      { "companion": "", "statement": "finisce sempre nei guai: devo proteggerlo da sé stesso." }
     ],
     "gear": [
-      { "name": "Ascia a due mani (+1 danni)", "weight": 2 },
-      { "name": "Pelle grezza (+1 armatura)", "weight": 1 },
-      { "name": "Razioni da viaggio (5 utilizzi)", "weight": 1 }
+      { "name": "Ascia (media)",                   "weight": 1 },
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 },
+      { "name": "Pugnale (corto)",                 "weight": 1 }
     ],
     "maxWeight": 8,
     "locked": false,

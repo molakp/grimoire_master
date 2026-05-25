@@ -1,5 +1,5 @@
 import { useState, useEffect, ReactNode, FormEvent, ChangeEvent } from 'react';
-import { Character, DiceRollLog } from '../types';
+import { Character, CharacterTemplate, DiceRollLog } from '../types';
 import { Shield, BookOpen, Swords, Heart, User, Sparkles, Plus, Minus, Lock, Unlock, Trash2, ArrowLeft, RotateCcw, CloudLightning } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 
@@ -16,6 +16,7 @@ interface CharacterSheetProps {
   onSignOut?: () => void;
   isAuthLoading?: boolean;
   onPublishCommunity?: (char: Character, description: string) => Promise<void>;
+  template?: CharacterTemplate;
   isAdmin?: boolean;
 }
 
@@ -32,8 +33,13 @@ export default function CharacterSheet({
   onSignOut,
   isAuthLoading,
   onPublishCommunity,
+  template,
   isAdmin,
 }: CharacterSheetProps) {
+  const isSpellcaster = template
+    ? (template.availableSpells?.length ?? 0) > 0
+    : character.class.toLowerCase().includes('mago') || character.class.toLowerCase().includes('chierico');
+
   const [selectedAttribute, setSelectedAttribute] = useState<'INT' | 'FOR' | 'DES' | 'COS' | 'SAG' | 'CAR'>('INT');
   const [newGearName, setNewGearName] = useState('');
   const [newGearWeight, setNewGearWeight] = useState(1);
@@ -301,7 +307,7 @@ export default function CharacterSheet({
         </div>
 
         <nav className="hidden md:flex gap-8">
-          {(['stats', 'spells', 'moves', 'gear', 'lore'] as const).map((tab) => (
+          {(['stats', 'spells', 'moves', 'gear', 'lore'] as const).filter(tab => tab !== 'spells' || isSpellcaster).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -511,7 +517,7 @@ export default function CharacterSheet({
           
           {/* MOBILE DETAILED TAB NAVIGATION BAR */}
           <nav className="flex md:hidden justify-around items-center py-2 bg-surface-container-high rounded-lg border border-outline-variant/30">
-            {(['stats', 'spells', 'moves', 'gear', 'lore'] as const).map((tab) => (
+            {(['stats', 'spells', 'moves', 'gear', 'lore'] as const).filter(tab => tab !== 'spells' || isSpellcaster).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -535,55 +541,39 @@ export default function CharacterSheet({
                     🛡️ RAZZA
                   </h3>
                   <div className="space-y-4 text-left">
-                    {(!character.locked || character.race === 'ELFO') && (
+                    {template ? (
+                      template.races.map((race) => {
+                        const isSelected = character.race.toUpperCase() === race.name.toUpperCase();
+                        if (character.locked && !isSelected) return null;
+                        return (
+                          <label key={race.id} className="flex gap-4 cursor-pointer group">
+                            <input
+                              type="radio"
+                              name="race"
+                              disabled={character.locked}
+                              checked={isSelected}
+                              onChange={() => onUpdateCharacter({ ...character, race: race.name.toUpperCase() })}
+                              className="mt-1 text-primary-container focus:ring-primary border-outline-variant bg-surface-dim"
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-bold text-primary group-hover:text-primary-fixed transition-colors text-sm">
+                                {race.name.toUpperCase()}
+                              </span>
+                              <span className="text-on-surface-variant text-xs">
+                                {race.moveDescription}
+                              </span>
+                            </div>
+                          </label>
+                        );
+                      })
+                    ) : (
                       <label className="flex gap-4 cursor-pointer group">
-                        <input
-                          type="radio"
-                          name="race"
-                          disabled={character.locked}
-                          checked={character.race === 'ELFO'}
-                          onChange={() => onUpdateCharacter({ ...character, race: 'ELFO' })}
-                          className="mt-1 text-primary-container focus:ring-primary border-outline-variant bg-surface-dim"
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-bold text-primary group-hover:text-primary-fixed transition-colors text-sm">
-                            ELFO
-                          </span>
-                          <span className="text-on-surface-variant text-xs">
-                            La magia per te è naturale come il respiro. Individuazione del Magico per te è un trucchetto.
-                          </span>
-                        </div>
-                      </label>
-                    )}
-
-                    {(!character.locked || character.race === 'UMANO') && (
-                      <label className="flex gap-4 cursor-pointer group">
-                        <input
-                          type="radio"
-                          name="race"
-                          disabled={character.locked}
-                          checked={character.race === 'UMANO'}
-                          onChange={() => onUpdateCharacter({ ...character, race: 'UMANO' })}
-                          className="mt-1 text-primary-container focus:ring-primary border-outline-variant bg-surface-dim"
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-bold text-primary group-hover:text-primary-fixed transition-colors text-sm">
-                            UMANO
-                          </span>
-                          <span className="text-on-surface-variant text-xs">
-                            Scegli un incantesimo da chierico. Puoi lanciarlo come se fosse un incantesimo da mago.
-                          </span>
-                        </div>
-                      </label>
-                    )}
-
-                    {character.locked && character.race !== 'ELFO' && character.race !== 'UMANO' && (
-                      <label className="flex gap-4 cursor-pointer group animate-[fadeIn_0.2s_ease]">
                         <input
                           type="radio"
                           name="race"
                           disabled={character.locked}
                           checked={true}
+                          readOnly
                           className="mt-1 text-primary-container focus:ring-primary border-outline-variant bg-surface-dim"
                         />
                         <div className="flex flex-col">
@@ -604,47 +594,35 @@ export default function CharacterSheet({
                     ⚖️ ALLINEAMENTO
                   </h3>
                   <div className="space-y-3 text-left">
-                    {(!character.locked || character.alignment === 'BUONO') && (
+                    {template ? (
+                      template.alignments.map((alignment) => {
+                        const isSelected = character.alignment.toUpperCase() === alignment.name.toUpperCase();
+                        if (character.locked && !isSelected) return null;
+                        return (
+                          <div key={alignment.id} className={`flex items-start gap-3 p-2 rounded border transition-all ${isSelected ? 'bg-surface-dim/40 border-primary/10' : 'hover:bg-surface-dim/40 border-transparent'}`}>
+                            <input
+                              type="radio"
+                              name="alignment"
+                              disabled={character.locked}
+                              checked={isSelected}
+                              onChange={() => onUpdateCharacter({ ...character, alignment: alignment.name.toUpperCase(), alignmentDesc: alignment.description })}
+                              className="mt-1 rounded-full border-outline-variant bg-surface-dim text-primary"
+                            />
+                            <div className="text-xs">
+                              <p className={`font-mono font-bold ${isSelected ? 'text-primary' : 'text-on-surface-variant'}`}>{alignment.name.toUpperCase()}</p>
+                              <p className="text-on-surface-variant italic">{alignment.description}</p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
                       <div className="flex items-start gap-3 p-2 bg-surface-dim/40 rounded border border-primary/10">
                         <input
                           type="radio"
                           name="alignment"
                           disabled={character.locked}
-                          checked={character.alignment === 'BUONO'}
-                          onChange={() => onUpdateCharacter({ ...character, alignment: 'BUONO', alignmentDesc: "Usa la magia per aiutare direttamente qualcun'altro." })}
-                          className="mt-1 rounded-full border-outline-variant bg-surface-dim text-primary"
-                        />
-                        <div className="text-xs">
-                          <p className="font-mono text-primary font-bold">BUONO</p>
-                          <p className="text-on-surface-variant italic">Usa la magia per aiutare direttamente qualcun'altro.</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {(!character.locked || character.alignment === 'NEUTRALE') && (
-                      <div className="flex items-start gap-3 p-2 hover:bg-surface-dim/40 rounded transition-all">
-                        <input
-                          type="radio"
-                          name="alignment"
-                          disabled={character.locked}
-                          checked={character.alignment === 'NEUTRALE'}
-                          onChange={() => onUpdateCharacter({ ...character, alignment: 'NEUTRALE', alignmentDesc: "Scopri qualcosa riguardo a un mistero della magia." })}
-                          className="mt-1 rounded-full border-outline-variant bg-surface-dim text-primary"
-                        />
-                        <div className="text-xs">
-                          <p className="font-mono text-on-surface-variant font-bold">NEUTRALE</p>
-                          <p className="text-on-surface-variant italic">Scopri qualcosa riguardo a un mistero della magia.</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {character.locked && character.alignment !== 'BUONO' && character.alignment !== 'NEUTRALE' && (
-                      <div className="flex items-start gap-3 p-2 bg-surface-dim/40 rounded border border-primary/10 animate-[fadeIn_0.2s_ease]">
-                        <input
-                          type="radio"
-                          name="alignment"
-                          disabled={character.locked}
                           checked={true}
+                          readOnly
                           className="mt-1 rounded-full border-outline-variant bg-surface-dim text-primary"
                         />
                         <div className="text-xs">
@@ -669,43 +647,18 @@ export default function CharacterSheet({
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                  <article className="space-y-4">
-                    <div>
-                      <h4 className="font-serif font-bold text-primary mb-1">LIBRO DEGLI INCANTESIMI</h4>
-                      <p className="text-xs text-on-surface-variant leading-relaxed">
-                        Hai padroneggiato diversi incantesimi e li hai trascritti nel tuo libro. Ogni volta che sali di livello, aggiungi un nuovo incantesimo al tuo libro. Peso: 1.
-                      </p>
-                    </div>
-                    <div className="p-4 bg-surface-container-highest/40 border-l-2 border-primary">
-                      <h4 className="font-mono text-primary text-xs font-bold mb-2">PREPARARE INCANTESIMI</h4>
-                      <p className="text-xs text-on-surface-variant italic leading-normal">
-                        Quando trascorri del tempo non interrotto in quieta contemplazione: perdi tutti gli incantesimi preparati e ne prepari di nuovi il cui livello totale non superi il tuo livello+1.
-                      </p>
-                    </div>
-                  </article>
-
-                  <article className="space-y-4">
-                    <div className="bg-surface-container-lowest p-4 border border-outline-variant/30 rounded">
-                      <h4 className="font-serif font-bold text-primary mb-2">LANCIARE INCANTESIMI (INT)</h4>
-                      <p className="text-xs text-on-surface-variant mb-2">Quando lanci un incantesimo, tira +INT. Con 10+ lanciato con successo. Con 7-9 lanciato ma scegli un'opzione:</p>
-                      <ul className="text-xs text-on-surface-variant space-y-1 list-disc pl-4 italic">
-                        <li>Attiri attenzioni indesiderate</li>
-                        <li>L'incantesimo disturba il tessuto della realtà (-1 continuato)</li>
-                        <li>Dimentichi l'incantesimo</li>
-                      </ul>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 bg-surface-container-high/50 border border-outline-variant/20 rounded">
-                        <h5 className="font-mono text-primary text-[10px] uppercase font-bold mb-1">RITUALE</h5>
-                        <p className="text-[11px] text-on-surface-variant italic leading-tight">Attingi a luoghi di potere per creare effetti magici.</p>
-                      </div>
-                      <div className="p-3 bg-surface-container-high/50 border border-outline-variant/20 rounded">
-                        <h5 className="font-mono text-primary text-[10px] uppercase font-bold mb-1">SCUDO MAGICO</h5>
-                        <p className="text-[11px] text-on-surface-variant italic leading-tight">Plasmi un incantesimo in uno scudo di magia arcana.</p>
-                      </div>
-                    </div>
-                  </article>
+                  {template ? (
+                    template.classMoves.filter(m => m.isStarting).map((move) => (
+                      <article key={move.name} className="space-y-2">
+                        <h4 className="font-serif font-bold text-primary mb-1">{move.name.toUpperCase()}</h4>
+                        <p className="text-xs text-on-surface-variant leading-relaxed">
+                          {move.description}
+                        </p>
+                      </article>
+                    ))
+                  ) : (
+                    <p className="text-xs text-on-surface-variant italic col-span-2">Caricamento mosse iniziali...</p>
+                  )}
                 </div>
               </div>
 
@@ -888,7 +841,12 @@ export default function CharacterSheet({
           {/* SPELLS TAB COMPOSITIONS */}
           {activeTab === 'spells' && (
             <div className="animate-[fadeIn_0.3s_ease] text-left">
-              {renderSpellsTab()}
+              {isSpellcaster ? renderSpellsTab() : (
+                <div className="bg-surface-container border border-outline-variant/20 p-12 rounded-lg text-center">
+                  <p className="font-serif text-3xl text-primary mb-3">⚔️ Nessuna Magia</p>
+                  <p className="text-sm text-on-surface-variant">{character.class} non è un incantatore.</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -903,16 +861,17 @@ export default function CharacterSheet({
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                {ADVANCED_MOVES.map((move) => {
-                  const isSelected = isMoveSelected(move.id);
+                {(template ? template.classMoves.filter(m => !m.isStarting) : ADVANCED_MOVES).map((move) => {
+                  const moveKey = move.name;
+                  const isSelected = isMoveSelected(moveKey);
                   if (character.locked && !isSelected) return null;
 
                   return (
                     <button
                       type="button"
-                      key={move.id}
+                      key={moveKey}
                       disabled={character.locked}
-                      onClick={() => toggleMove(move.id)}
+                      onClick={() => toggleMove(moveKey)}
                       className={`p-4 bg-surface-container-low border rounded text-left transition-all w-full flex flex-col justify-between ${
                         isSelected 
                           ? 'border-primary shadow-[inset_0_0_10px_rgba(242,202,80,0.1)]' 

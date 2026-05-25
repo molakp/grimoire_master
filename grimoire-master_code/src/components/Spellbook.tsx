@@ -5,9 +5,10 @@ import { Sparkles, Castle, Lock, Unlock, Zap, Eye, Globe } from 'lucide-react';
 interface SpellbookProps {
   character: Character;
   onUpdateCharacter: (character: Character) => void;
+  spellList?: Spell[];
 }
 
-export default function Spellbook({ character, onUpdateCharacter }: SpellbookProps) {
+export default function Spellbook({ character, onUpdateCharacter, spellList }: SpellbookProps) {
   const isLocked = character.locked ?? false;
 
   // Toggle preparation of a spell safely
@@ -34,15 +35,18 @@ export default function Spellbook({ character, onUpdateCharacter }: SpellbookPro
   };
 
   // Group spells by level categories
-  const cantrips = SPELL_LIST.filter((spell) => spell.level === 'Trucchetto');
-  const level1 = SPELL_LIST.filter((spell) => spell.level === 'Livello 1');
-  const level3 = SPELL_LIST.filter((spell) => spell.level === 'Livello 3');
-  const level5 = SPELL_LIST.filter((spell) => spell.level === 'Potere del Quinto Livello');
-  const level9 = SPELL_LIST.filter((spell) => spell.level === 'Supremazia del Nono Livello');
+  const spells = (spellList && spellList.length > 0) ? spellList : SPELL_LIST;
+  const cantrips = spells.filter((spell) => spell.level === 'Trucchetto');
+  const level1 = spells.filter((spell) => spell.level === 'Livello 1');
+  const level3 = spells.filter((spell) => spell.level === 'Livello 3');
+  const level5 = spells.filter((spell) => spell.level === 'Livello 5' || spell.level === 'Potere del Quinto Livello');
+  const level7 = spells.filter((spell) => spell.level === 'Livello 7');
+  const level9 = spells.filter((spell) => spell.level === 'Livello 9' || spell.level === 'Supremazia del Nono Livello');
 
   const filteredLevel1 = isLocked ? level1.filter(spell => isPrepared(spell.name)) : level1;
   const filteredLevel3 = isLocked ? level3.filter(spell => isPrepared(spell.name)) : level3;
   const filteredLevel5 = isLocked ? level5.filter(spell => isPrepared(spell.name)) : level5;
+  const filteredLevel7 = isLocked ? level7.filter(spell => isPrepared(spell.name)) : level7;
   const filteredLevel9 = isLocked ? level9.filter(spell => isPrepared(spell.name)) : level9;
 
   return (
@@ -170,18 +174,49 @@ export default function Spellbook({ character, onUpdateCharacter }: SpellbookPro
         </section>
       )}
 
-      {/* LEVEL 5 & 9 CORES GRID */}
-      {(!isLocked || filteredLevel5.length > 0 || filteredLevel9.length > 0) && (
+      {/* LEVEL 5, 7 & 9 CORES GRID */}
+      {(!isLocked || filteredLevel5.length > 0 || filteredLevel7.length > 0 || filteredLevel9.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* LEVEL 5 PANEL */}
           {(!isLocked || filteredLevel5.length > 0) && (
             <div className="bg-surface-container-high rounded-xl border border-outline-variant p-6 text-left">
               <h2 className="font-serif text-xl text-primary mb-6 uppercase tracking-widest border-b border-outline-variant pb-2 font-bold select-none">
-                Potere del Quinto Livello
+                Incantesimi di Quinto Livello
               </h2>
               <div className="space-y-4">
                 {filteredLevel5.map((spell) => (
+                  <div
+                    key={spell.id}
+                    className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant hover:border-primary transition-all duration-300"
+                  >
+                    <div>
+                      <p className="text-primary font-bold text-sm font-serif">{spell.name}</p>
+                      <p className="text-[10px] text-on-surface-variant font-mono uppercase mt-0.5">
+                        {spell.school}
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      disabled={isLocked}
+                      checked={isPrepared(spell.name)}
+                      onChange={() => handleSpellToggle(spell.name)}
+                      className="w-5 h-5 rounded border-outline-variant bg-surface-container-low text-primary focus:ring-primary cursor-pointer disabled:opacity-50"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* LEVEL 7 PANEL */}
+          {(!isLocked || filteredLevel7.length > 0) && (
+            <div className="bg-surface-container-high rounded-xl border border-outline-variant p-6 text-left">
+              <h2 className="font-serif text-xl text-primary mb-6 uppercase tracking-widest border-b border-outline-variant pb-2 font-bold select-none">
+                Incantesimi di Settimo Livello
+              </h2>
+              <div className="space-y-4">
+                {filteredLevel7.map((spell) => (
                   <div
                     key={spell.id}
                     className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant hover:border-primary transition-all duration-300"
@@ -209,7 +244,7 @@ export default function Spellbook({ character, onUpdateCharacter }: SpellbookPro
           {(!isLocked || filteredLevel9.length > 0) && (
             <div className="bg-surface-container-high rounded-xl border border-outline-variant p-6 text-left">
               <h2 className="font-serif text-xl text-primary mb-6 uppercase tracking-widest border-b border-outline-variant pb-2 font-bold select-none">
-                Supremazia del Nono Livello
+                Incantesimi di Nono Livello
               </h2>
               <div className="space-y-4">
                 {filteredLevel9.map((spell) => {

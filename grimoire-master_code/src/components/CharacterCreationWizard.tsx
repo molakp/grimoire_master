@@ -64,279 +64,41 @@ const DEFAULT_APPEARANCE = {
   body: ''
 };
 
-const toClassKey = (className: string): 'wizard' | 'fighter' | 'thief' | 'paladin' | 'generic' => {
-  const normalized = className.toLowerCase();
-  if (normalized.includes('mago') || normalized.includes('wizard')) return 'wizard';
-  if (normalized.includes('guerriero') || normalized.includes('fighter')) return 'fighter';
-  if (normalized.includes('ladro') || normalized.includes('thief')) return 'thief';
-  if (normalized.includes('paladino') || normalized.includes('paladin')) return 'paladin';
-  return 'generic';
-};
-
 const getAttributeMod = (score: number): string => {
   const mod = Math.floor((score - 10) / 2);
   return mod >= 0 ? `+${mod}` : `${mod}`;
 };
 
 const getTemplateConfig = (template: CharacterTemplate): TemplateWizardConfig => {
-  const classKey = toClassKey(template.class);
-
-  if (classKey === 'wizard') {
-    return {
-      raceOptions: [
-        {
-          id: 'elfo',
-          name: 'Elfo',
-          description: 'La magia per te e naturale come il respiro. Ottieni una connessione innata ai flussi arcan i.',
-          trait: 'Senso Arcano',
-          bonusAttribute: 'SAG',
-          bonusValue: 1
-        },
-        {
-          id: 'umano',
-          name: 'Umano',
-          description: 'La tua versatilita non conosce limiti: puoi innestare dottrine esterne nel tuo grimorio.',
-          trait: 'Erudito Divino',
-          bonusAttribute: 'INT',
-          bonusValue: 1
-        }
-      ],
-      alignmentOptions: [
-        {
-          id: 'buono',
-          name: 'Buono',
-          description: 'Agisci per il bene altrui, anche a costo personale. La tua magia e un faro nella tempesta.'
-        },
-        {
-          id: 'neutrale',
-          name: 'Neutrale',
-          description: 'Cerchi l equilibrio universale. La magia e uno strumento per leggere il disegno nascosto.'
-        },
-        {
-          id: 'malvagio',
-          name: 'Malvagio',
-          description: 'Pieghi il potere ai tuoi scopi. La morale e un velo che i segreti piu oscuri dissolvono.'
-        }
-      ],
-      classBonus: {
-        attribute: 'INT',
-        value: 2,
-        label: '+2 Intelligenza'
-      },
-      appearanceOptions: {
-        eyes: ['Occhi tormentati', 'Occhi vispi', 'Occhi vitrei'],
-        head: ['Cappello a punta', 'Testa calva', 'Capelli arruffati'],
-        clothes: ['Toga logora', 'Toga raffinata', 'Vesti astrali'],
-        body: ['Corpo atletico', 'Corpo gracile', 'Portamento regale']
-      },
-      fragments: [16, 15, 13, 12, 10, 8]
-    };
-  }
-
-  if (classKey === 'fighter') {
-    return {
-      raceOptions: [
-        {
-          id: 'nano',
-          name: 'Nano',
-          description: 'Forgiato nella roccia e nella guerra. Resisti dove altri crollano.',
-          trait: 'Sangue di Ferro',
-          bonusAttribute: 'COS',
-          bonusValue: 1
-        },
-        {
-          id: 'umano',
-          name: 'Umano',
-          description: 'Versatile e imprevedibile. Ogni battaglia diventa terreno favorevole.',
-          trait: 'Disciplina Marziale',
-          bonusAttribute: 'FOR',
-          bonusValue: 1
-        }
-      ],
-      alignmentOptions: [
-        {
-          id: 'buono',
-          name: 'Buono',
-          description: 'Difendi i deboli e affronta la prima linea quando la tempesta arriva.'
-        },
-        {
-          id: 'neutrale',
-          name: 'Neutrale',
-          description: 'Onora il patto del gruppo e scegli la vittoria con mente fredda.'
-        },
-        {
-          id: 'malvagio',
-          name: 'Malvagio',
-          description: 'Conquista cio che desideri con il filo della lama e la paura dei nemici.'
-        }
-      ],
-      classBonus: {
-        attribute: 'FOR',
-        value: 2,
-        label: '+2 Forza'
-      },
-      appearanceOptions: {
-        eyes: ['Sguardo di guerra', 'Occhi cicatrizzati', 'Occhi di brace'],
-        head: ['Treccia da battaglia', 'Elmo scheggiato', 'Capelli rasati'],
-        clothes: ['Corazza vissuta', 'Manto da campagna', 'Piastre cerimoniali'],
-        body: ['Corpo massiccio', 'Corpo temprato', 'Corpo robusto']
-      },
-      fragments: [16, 15, 13, 12, 10, 8]
-    };
-  }
-
-  if (classKey === 'thief') {
-    return {
-      raceOptions: [
-        {
-          id: 'umano',
-          name: 'Umano',
-          description: 'Ti confondi ovunque. Un volto in mezzo alla folla e gia una maschera.',
-          trait: 'Passo Felpato',
-          bonusAttribute: 'DES',
-          bonusValue: 1
-        },
-        {
-          id: 'halfling',
-          name: 'Mezzuomo',
-          description: 'Piccolo e imprendibile. Nessuna serratura ama averti vicino.',
-          trait: 'Mani Leggere',
-          bonusAttribute: 'CAR',
-          bonusValue: 1
-        }
-      ],
-      alignmentOptions: [
-        {
-          id: 'buono',
-          name: 'Buono',
-          description: 'Ruba ai predatori e proteggi chi non ha voce nelle ombre della citta.'
-        },
-        {
-          id: 'neutrale',
-          name: 'Neutrale',
-          description: 'Lascia che l opportunita decida. Ti muovi tra le linee senza appartenergli.'
-        },
-        {
-          id: 'malvagio',
-          name: 'Malvagio',
-          description: 'La fiducia e una moneta e tu sai esattamente come spendere quella altrui.'
-        }
-      ],
-      classBonus: {
-        attribute: 'DES',
-        value: 2,
-        label: '+2 Destrezza'
-      },
-      appearanceOptions: {
-        eyes: ['Occhi diffidenti', 'Occhi rapidi', 'Occhi d ombra'],
-        head: ['Cappuccio scuro', 'Capelli spettinati', 'Taglio asimmetrico'],
-        clothes: ['Cuoio flessibile', 'Mantello opaco', 'Abiti da strada'],
-        body: ['Corpo agile', 'Corpo asciutto', 'Corpo nervoso']
-      },
-      fragments: [16, 15, 13, 12, 10, 8]
-    };
-  }
-
-  if (classKey === 'paladin') {
-    return {
-      raceOptions: [
-        {
-          id: 'umano',
-          name: 'Umano',
-          description: 'Porti il peso del giuramento con fermezza e misericordia.',
-          trait: 'Voto Solenne',
-          bonusAttribute: 'SAG',
-          bonusValue: 1
-        },
-        {
-          id: 'nano',
-          name: 'Nano',
-          description: 'Antico custode di voti e fortezze. La tua fede e un bastione.',
-          trait: 'Cuore Incudine',
-          bonusAttribute: 'FOR',
-          bonusValue: 1
-        }
-      ],
-      alignmentOptions: [
-        {
-          id: 'buono',
-          name: 'Buono',
-          description: 'Proteggi il giusto, anche quando il prezzo e alto e la strada impervia.'
-        },
-        {
-          id: 'neutrale',
-          name: 'Neutrale',
-          description: 'Mantieni l ordine e la parola data, senza piegare il voto ai capricci.'
-        },
-        {
-          id: 'malvagio',
-          name: 'Malvagio',
-          description: 'Strumentalizza il giuramento per imporre dominio e obbedienza assoluta.'
-        }
-      ],
-      classBonus: {
-        attribute: 'SAG',
-        value: 2,
-        label: '+2 Saggezza'
-      },
-      appearanceOptions: {
-        eyes: ['Occhi severi', 'Occhi compassionevoli', 'Occhi d oro'],
-        head: ['Elmo consacrato', 'Capigliatura nobile', 'Volto segnato'],
-        clothes: ['Vesti da crociato', 'Mantello sacro', 'Armatura lucente'],
-        body: ['Corpo disciplinato', 'Corpo imponente', 'Corpo saldo']
-      },
-      fragments: [16, 15, 13, 12, 10, 8]
-    };
-  }
-
+  // Read directly from Firebase template fields
+  const attrKey: AttributeKey = template.classBonus?.attribute || 'INT';
+  const attrLabel = ATTRIBUTE_LABELS[attrKey]?.it || attrKey;
   return {
-    raceOptions: [
-      {
-        id: 'umano',
-        name: 'Umano',
-        description: 'Adattabile e determinato, pronto a tracciare il proprio destino.',
-        trait: 'Versatilita Innata',
-        bonusAttribute: 'INT',
-        bonusValue: 1
-      },
-      {
-        id: 'elfo',
-        name: 'Elfo',
-        description: 'Sensi acuti e antica memoria arcana risuonano nel sangue.',
-        trait: 'Vista Primordiale',
-        bonusAttribute: 'SAG',
-        bonusValue: 1
-      }
-    ],
-    alignmentOptions: [
-      {
-        id: 'buono',
-        name: 'Buono',
-        description: 'Agisci per il bene comune e difendi la tua compagnia.'
-      },
-      {
-        id: 'neutrale',
-        name: 'Neutrale',
-        description: 'Cerca equilibrio tra necessita, dovere e curiosita.'
-      },
-      {
-        id: 'malvagio',
-        name: 'Malvagio',
-        description: 'Piega il mondo alla tua volonta quando serve sopravvivere.'
-      }
-    ],
+    raceOptions: (template.races || []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.moveDescription || '',
+      trait: r.name,
+      bonusAttribute: r.bonusAttribute || 'INT',
+      bonusValue: r.bonusValue || 1,
+    })),
+    alignmentOptions: (template.alignments || []).map((a) => ({
+      id: a.id,
+      name: a.name,
+      description: a.description,
+    })),
     classBonus: {
-      attribute: 'INT',
-      value: 1,
-      label: '+1 Caratteristica Primaria'
+      attribute: attrKey,
+      value: template.classBonus?.value || 1,
+      label: `+${template.classBonus?.value || 1} ${attrLabel}`,
     },
-    appearanceOptions: {
-      eyes: ['Occhi freddi', 'Occhi curiosi', 'Occhi antichi'],
-      head: ['Cappuccio', 'Capelli lunghi', 'Calotta rasata'],
-      clothes: ['Vesti da viaggio', 'Tunica elegante', 'Abiti consumati'],
-      body: ['Corpo agile', 'Corpo robusto', 'Corpo asciutto']
+    appearanceOptions: template.appearanceOptions || {
+      eyes: ['Occhi attenti', 'Occhi vivaci', 'Occhi segnati'],
+      head: ['Capelli corti', 'Capelli lunghi', 'Testa rasata'],
+      clothes: ['Vesti da viaggio', 'Abiti semplici', 'Abiti consumati'],
+      body: ['Corpo agile', 'Corpo robusto', 'Corpo esile'],
     },
-    fragments: [16, 15, 13, 12, 10, 8]
+    fragments: [16, 15, 13, 12, 10, 8],
   };
 };
 
