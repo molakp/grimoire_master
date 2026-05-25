@@ -1,0 +1,7 @@
+# Firebase Admin SDK service account keys — NEVER commit
+*firebase-adminsdk*.json
+*service-account*.json
+*serviceAccount*.json
+dungeonworld-ita-master
+.DS_Store
+*gen-lang-client*
