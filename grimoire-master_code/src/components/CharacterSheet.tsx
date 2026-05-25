@@ -140,9 +140,17 @@ export default function CharacterSheet({
 
   // Change experience safely
   const adjustXP = (amount: number) => {
+    if (character.locked) return;
     const updated = { ...character };
     updated.experience = Math.max(0, character.experience + amount);
     onUpdateCharacter(updated);
+  };
+
+  // Level up ritual
+  const [isLevelUpModalOpen, setIsLevelUpModalOpen] = useState(false);
+  const handleLevelUp = () => {
+    onUpdateCharacter({ ...character, level: character.level + 1, experience: 0 });
+    setIsLevelUpModalOpen(false);
   };
 
   // Update specific bond companion name
@@ -393,17 +401,28 @@ export default function CharacterSheet({
                   <div className="flex gap-0.5">
                     <button
                       onClick={() => adjustXP(-1)}
-                      className="w-4 h-4 bg-surface-container hover:bg-primary/20 text-outline text-[10px] rounded flex items-center justify-center font-bold"
+                      disabled={character.locked}
+                      className="w-4 h-4 bg-surface-container hover:bg-primary/20 text-outline text-[10px] rounded flex items-center justify-center font-bold disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       -
                     </button>
                     <button
                       onClick={() => adjustXP(1)}
-                      className="w-4 h-4 bg-surface-container hover:bg-primary/20 text-primary text-[10px] rounded flex items-center justify-center font-bold"
+                      disabled={character.locked}
+                      className="w-4 h-4 bg-surface-container hover:bg-primary/20 text-primary text-[10px] rounded flex items-center justify-center font-bold disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       +
                     </button>
                   </div>
+                  {!character.locked && character.experience > 0 && (
+                    <button
+                      onClick={() => setIsLevelUpModalOpen(true)}
+                      title="Avanza di Livello"
+                      className="w-5 h-5 bg-primary/20 hover:bg-primary/40 text-primary text-[10px] rounded flex items-center justify-center font-bold transition-colors"
+                    >
+                      ▲
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1063,6 +1082,46 @@ export default function CharacterSheet({
                 className="px-4 py-2 bg-primary text-background hover:bg-primary/90 text-xs font-bold uppercase tracking-wider rounded shadow-md transition-colors"
               >
                 Salva
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ⭐ RITUALE DEL LIVELLO SUPERIORE */}
+      {isLevelUpModalOpen && (
+        <div
+          className="fixed inset-0 z-[10010] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-[fadeIn_0.2s_ease]"
+          onClick={() => setIsLevelUpModalOpen(false)}
+        >
+          <div
+            className="parchment-bg border-2 border-primary shadow-[0_0_60px_rgba(242,202,80,0.4)] rounded-lg max-w-sm w-full p-8 flex flex-col items-center gap-5 animate-[scaleUp_0.2s_ease] text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-5xl">⭐</div>
+            <h2 className="font-serif text-2xl text-primary uppercase tracking-widest font-bold">
+              Rituale del Livello Superiore
+            </h2>
+            <p className="text-sm text-on-surface-variant font-mono leading-relaxed">
+              Il Master ha decretato che la tua gesta merita riconoscimento.<br />
+              <span className="text-primary font-bold">{character.name}</span> avanza al{' '}
+              <span className="text-primary font-bold">Livello {character.level + 1}</span>.
+            </p>
+            <p className="text-xs text-on-surface-variant/60 font-mono italic">
+              I Punti Esperienza saranno azzerati e il rito non potrà essere disfatto.
+            </p>
+            <div className="flex gap-3 w-full mt-2">
+              <button
+                onClick={() => setIsLevelUpModalOpen(false)}
+                className="flex-1 py-2 rounded border border-outline-variant text-on-surface-variant text-sm font-mono hover:bg-surface-container transition-colors"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleLevelUp}
+                className="flex-1 py-2 rounded bg-primary text-on-primary text-sm font-serif font-bold uppercase tracking-widest hover:bg-primary/80 transition-colors shadow-[0_0_20px_rgba(242,202,80,0.3)]"
+              >
+                Compi il Rito
               </button>
             </div>
           </div>
