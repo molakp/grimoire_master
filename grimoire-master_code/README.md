@@ -54,7 +54,20 @@ Emulators:
    `npm run deploy:hosting`
 
 Or run full deploy:
-`npm run deploy`
+`npm run build && firebase deploy --only hosting`
+
+Senza --only hosting, Firebase legge il tuo firebase.json e deploya tutto quello che è configurato:
+
+Nel tuo caso specifico il firebase.json ha:
+
+hosting → l'app statica (quello che hai fatto)
+firestore → le security rules (firestore.rules)
+emulators → (solo config locale, non viene deployato)
+Quindi firebase deploy da solo farebbe:
+
+Upload dei file statici su Hosting
+Deploy delle Firestore rules in produzione
+Le rules al momento non le hai modificate di recente, quindi sarebbe sicuro — ma è buona pratica usare --only hosting per essere espliciti e non rischiare di sovrascrivere accidentalmente regole di sicurezza che magari hai aggiornato solo parzialmente.
 
 ## Google Auth Authorized Domains
 

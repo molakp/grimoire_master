@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, FormEvent } from 'react';
 import { Admin, BannedUser, UserProfile } from '../types';
-import { UserPlus, ShieldAlert, ShieldCheck, Mail, Trash2, Send, Lock, UserX, FileText, Users, Search } from 'lucide-react';
+import { UserPlus, ShieldAlert, ShieldCheck, Mail, Trash2, Send, UserX, Users, Search, Filter, ArrowUpDown, CheckCircle } from 'lucide-react';
 
 interface AdminCourtProps {
   adminsList: Admin[];
@@ -262,386 +262,317 @@ export default function AdminCourt({
   };
 
   return (
-    <div className="bg-surface/95 border border-border shadow-[0_4px_30px_rgba(0,0,0,0.4)] rounded-lg p-6 max-w-4xl w-full mx-auto font-sans relative">
-      {/* Decorative top header line */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700"></div>
+    <div className="relative w-full max-w-5xl mx-auto font-sans">
 
-      {/* Title */}
-      <div className="flex items-center justify-between mb-6 border-b border-border/60 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-950/40 border border-amber-800 rounded flex items-center justify-center text-amber-500 shadow-lg">
-            <Lock className="w-5 h-5 animate-pulse" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-amber-500 uppercase font-sans">
-              Corte del Grimorio
-            </h2>
-            <p className="text-xs font-mono text-gray-400">
-              Pannello dell'Admin Master — Consiglio Sacro
-            </p>
-          </div>
+      {/* Ambient radial glow */}
+      <div className="absolute top-0 left-0 w-full h-48 pointer-events-none overflow-hidden rounded-2xl">
+        <div className="w-full h-full" style={{ background: 'radial-gradient(circle at 20% 50%, rgba(212,175,55,0.18) 0%, transparent 70%)' }} />
+      </div>
+
+      {/* ── HERO ── */}
+      <div className="relative z-10 pt-2 pb-8 flex items-start justify-between">
+        <div>
+          <h2 className="font-serif text-3xl md:text-[2.75rem] text-primary font-bold leading-tight mb-1 drop-shadow-[0_0_12px_rgba(242,202,80,0.3)]">
+            Consiglio Sacro
+          </h2>
+          <p className="text-on-surface-variant italic font-serif text-sm md:text-base opacity-80">
+            Santuario di Amministrazione
+          </p>
         </div>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-white bg-surface-dark border border-border hover:border-gray-600 px-3 py-1 rounded transition-all text-xs"
-        >
+        <button onClick={onClose}
+          className="hidden md:flex items-center gap-1.5 text-xs font-mono uppercase tracking-widest text-on-surface-variant border border-outline-variant px-3 py-1.5 rounded-lg hover:border-primary/50 hover:text-primary transition-all mt-1">
           Chiudi Portale
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-border/40 pb-2">
-        <button
-          onClick={() => setActiveSubTab('users')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm rounded font-medium border transition-all select-none ${
-            activeSubTab === 'users'
-              ? 'bg-amber-950/30 text-amber-500 border-amber-800 shadow-md font-bold'
-              : 'bg-transparent text-gray-400 border-transparent hover:text-white hover:bg-surface-dark/40'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          Elenco Utenti ({systemUsers.length})
-        </button>
-        <button
-          onClick={() => setActiveSubTab('admins')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm rounded font-medium border transition-all select-none ${
-            activeSubTab === 'admins'
-              ? 'bg-amber-950/30 text-amber-500 border-amber-800 shadow-md'
-              : 'bg-transparent text-gray-400 border-transparent hover:text-white hover:bg-surface-dark/40'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4" />
-          Amministratori ({adminsList.length})
-        </button>
-        <button
-          onClick={() => setActiveSubTab('bans')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm rounded font-medium border transition-all select-none ${
-            activeSubTab === 'bans'
-              ? 'bg-amber-950/30 text-rose-500 border-rose-900 shadow-md'
-              : 'bg-transparent text-gray-400 border-transparent hover:text-white hover:bg-surface-dark/40'
-          }`}
-        >
-          <UserX className="w-4 h-4" />
-          Membri Esiliati ({bannedList.length})
-        </button>
-        <button
-          onClick={() => setActiveSubTab('warnings')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm rounded font-medium border transition-all select-none ${
+      {/* ── STAT CARDS desktop: 3-col ── */}
+      <div className="hidden md:grid grid-cols-3 gap-6 mb-10">
+        {([
+          { key: 'users' as const,  label: 'Elenco Utenti',   count: systemUsers.length, sub: `${knownUsers.length} Gilda`, Icon: Users,       accent: 'text-secondary' },
+          { key: 'admins' as const, label: 'Amministratori',  count: adminsList.length,  sub: 'Inner Circle',               Icon: ShieldCheck, accent: 'text-on-surface-variant' },
+          { key: 'bans' as const,   label: 'Membri Esiliati', count: bannedList.length,  sub: 'Purged Souls',               Icon: UserX,       accent: 'text-error' },
+        ] as const).map(({ key, label, count, sub, Icon, accent }) => (
+          <button key={key} onClick={() => setActiveSubTab(key)}
+            className={`p-6 rounded-xl border text-left group transition-all duration-500 ${
+              activeSubTab === key
+                ? 'bg-primary-container/15 border-primary-container shadow-[0_0_24px_rgba(242,202,80,0.25)]'
+                : 'bg-gradient-to-br from-surface-container to-surface-container-low border-outline-variant hover:border-primary-container/60 hover:shadow-[0_0_20px_rgba(242,202,80,0.12)]'
+            }`}>
+            <div className="flex justify-between items-start mb-4">
+              <span className="font-mono text-primary uppercase tracking-[0.2em] text-xs">{label}</span>
+              <Icon size={20} className={`${accent} group-hover:scale-110 transition-transform`} />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold text-on-surface">{count}</span>
+              <span className={`text-xs ${accent}`}>{sub}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* ── STAT CARDS mobile: horizontal scroll with 4 items ── */}
+      <div className="md:hidden flex gap-3 overflow-x-auto pb-2 mb-6 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+        {([
+          { key: 'users' as const,    label: 'Elenco Utenti',     count: systemUsers.length, Icon: Users },
+          { key: 'admins' as const,   label: 'Amministratori',    count: adminsList.length,  Icon: ShieldCheck },
+          { key: 'bans' as const,     label: 'Membri Esiliati',   count: bannedList.length,  Icon: UserX },
+          { key: 'warnings' as const, label: 'Invia Ammonimento', count: null,               Icon: Send },
+        ] as const).map(({ key, label, count, Icon }) => (
+          <button key={key} onClick={() => setActiveSubTab(key)}
+            className={`flex-shrink-0 w-36 p-4 rounded-xl border transition-all text-left ${
+              activeSubTab === key
+                ? 'bg-primary-container/20 border-primary-container shadow-[0_0_12px_rgba(212,175,55,0.35)]'
+                : 'bg-gradient-to-br from-surface-container to-surface-container-low border-outline-variant'
+            }`}>
+            <Icon size={20} className={`mb-2 ${activeSubTab === key ? 'text-primary' : 'text-on-surface-variant'}`} />
+            <p className={`font-mono text-[10px] uppercase tracking-wide leading-tight ${activeSubTab === key ? 'text-primary' : 'text-on-surface-variant'}`}>{label}</p>
+            {count !== null && <p className={`text-xl font-bold mt-1 ${activeSubTab === key ? 'text-primary' : 'text-on-surface'}`}>{count}</p>}
+          </button>
+        ))}
+      </div>
+
+      {/* Desktop: Warnings shortcut */}
+      <div className="hidden md:flex justify-end mb-4">
+        <button onClick={() => setActiveSubTab('warnings')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg border text-xs font-mono uppercase tracking-wider transition-all ${
             activeSubTab === 'warnings'
-              ? 'bg-amber-950/30 text-blue-400 border-blue-900 shadow-md'
-              : 'bg-transparent text-gray-400 border-transparent hover:text-white hover:bg-surface-dark/40'
-          }`}
-        >
-          <Mail className="w-4 h-4" />
-          Invia Ammonimento
+              ? 'bg-blue-950/60 border-blue-800 text-blue-300'
+              : 'border-outline-variant text-on-surface-variant hover:border-blue-800/60 hover:text-blue-400'
+          }`}>
+          <Send size={12} /> Invia Ammonimento
         </button>
       </div>
 
-      {/* Tabs Body */}
+      {/* ── MAIN CONTENT ── */}
       <div className="min-h-[300px]">
-        {/* TAB 0: ALL USERS REGISTRY */}
+
+        {/* ══ TAB: users ══ */}
         {activeSubTab === 'users' && (
-          <div className="space-y-4 animate-fade-in">
-            {/* Search filter bar */}
-            <div className="flex items-center gap-3 bg-slate-950 border border-border/60 hover:border-amber-900/40 rounded-lg px-4 py-2.5 transition-all focus-within:border-amber-800">
-              <Search className="w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cerca un'anima per indirizzo email, nome, ruolo o scheda stampata..."
+          <div className="space-y-5 animate-[fadeIn_0.2s_ease]">
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/50" />
+              <input type="text"
+                placeholder="Cerca un'anima per email, nome, ruolo..."
                 value={userSearchQuery}
                 onChange={(e) => setUserSearchQuery(e.target.value)}
-                className="bg-transparent border-none text-sm text-white focus:outline-none w-full placeholder-gray-600 font-sans"
+                className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3.5 pl-11 pr-4 text-on-background placeholder:text-outline focus:outline-none focus:border-primary transition-all text-sm shadow-inner"
               />
               {userSearchQuery && (
-                <button 
-                  onClick={() => setUserSearchQuery('')} 
-                  className="text-xs text-amber-500 hover:text-amber-400 font-mono px-2 py-1 select-none focus:outline-none"
-                >
+                <button onClick={() => setUserSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-primary hover:text-primary/70 font-mono">
                   Sgombra
                 </button>
               )}
             </div>
 
-            {/* Users dynamic table-like feed */}
-            <div className="bg-surface-dark/40 border border-border/50 rounded-lg p-5">
-              <div className="flex justify-between items-center mb-4 border-b border-border/30 pb-3">
-                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2 font-mono">
-                  <Users className="w-4 h-4 text-amber-500" /> Registro delle Anime del Grembo
-                </h3>
-                <span className="text-[10px] font-mono text-gray-400 bg-background border border-border/80 px-2 py-1 rounded">
-                  {filteredSystemUsers.length} Trovati / {systemUsers.length} Totali
+            {/* Registry header */}
+            <div className="flex items-center justify-between py-3 border-b border-primary-container/30">
+              <h3 className="font-serif text-on-surface flex items-center gap-3 text-lg md:text-xl">
+                <span className="w-6 h-px bg-primary-container hidden md:block" />
+                <Users size={18} className="text-primary" />
+                Registro delle Anime
+                <span className="w-6 h-px bg-primary-container hidden md:block" />
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] text-outline border border-outline-variant px-2 py-0.5 rounded-full">
+                  {filteredSystemUsers.length} / {systemUsers.length}
                 </span>
+                <button className="p-1.5 border border-outline-variant rounded-lg text-on-surface-variant hover:text-primary hover:border-primary/40 transition-all">
+                  <Filter size={13} />
+                </button>
+                <button className="p-1.5 border border-outline-variant rounded-lg text-on-surface-variant hover:text-primary hover:border-primary/40 transition-all">
+                  <ArrowUpDown size={13} />
+                </button>
               </div>
-              
-              <div className="overflow-y-auto max-h-[350px] space-y-3 pr-1">
-                {filteredSystemUsers.length === 0 ? (
-                  <div className="py-12 text-center">
-                    <p className="text-xs text-gray-500 font-mono italic">
-                      Nessuna anima registrata risponde al criterio inciso sul papiro.
-                    </p>
-                  </div>
-                ) : (
-                  filteredSystemUsers.map((user) => (
-                    <div
-                      key={user.email}
-                      className={`p-3.5 rounded border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                        user.type === 'master'
-                          ? 'border-amber-900/60 bg-amber-950/10 hover:bg-amber-950/15'
-                          : user.type === 'admin'
-                          ? 'border-yellow-905 bg-yellow-950/5 hover:bg-yellow-950/10'
-                          : user.type === 'banned'
-                          ? 'border-rose-950 bg-rose-950/10 hover:bg-rose-950/15'
-                          : 'border-border/60 bg-background/25 hover:bg-background/40'
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1 flex gap-3 items-start">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 border shadow-sm ${
-                          user.type === 'master' ? 'bg-amber-550/10 border-amber-500 text-amber-500 shadow-amber-500/10' :
-                          user.type === 'admin' ? 'bg-yellow-550/10 border-yellow-500/80 text-yellow-500' :
-                          user.type === 'banned' ? 'bg-rose-500/15 border-rose-800 text-rose-500 shadow-rose-500/10' :
-                          'bg-gray-500/10 border-gray-600/80 text-gray-400'
-                        }`}>
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-white truncate max-w-[200px]" title={user.name}>
-                              {user.name}
-                            </span>
-                            <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded border leading-none ${
-                              user.type === 'master' ? 'bg-amber-950/35 text-amber-550 border-amber-850' :
-                              user.type === 'admin' ? 'bg-yellow-950/25 text-yellow-450 border-yellow-850' :
-                              user.type === 'banned' ? 'bg-rose-950/45 text-rose-455 border-rose-900' :
-                              'bg-blue-950/25 text-blue-400 border-blue-900/40'
-                            }`}>
-                              {user.role}
-                            </span>
-                          </div>
-                          <p className="text-xs font-mono text-gray-400 truncate mt-0.5 selection:bg-amber-950">
-                            {user.email}
-                          </p>
-                          {user.details && (
-                            <p className="text-[11px] font-serif text-gray-300 mt-1 italic leading-relaxed">
-                              {user.details}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+            </div>
 
-                      {/* Quick actions Panel */}
-                      <div className="flex items-center gap-2 self-end md:self-center">
-                        {user.type !== 'master' && (
-                          <>
-                            {user.type !== 'banned' && (
-                              <button
-                                onClick={() => {
-                                  setWarnEmail(user.email);
-                                  setActiveSubTab('warnings');
-                                }}
-                                className="px-2.5 py-1.5 bg-blue-955 hover:bg-blue-900 text-blue-200 hover:text-white rounded border border-blue-900/60 transition-all text-xs font-mono flex items-center gap-1.5 shadow"
-                                title="Invia Lettera di Ammonimento"
-                              >
-                                <Mail className="w-3.5 h-3.5 text-blue-400" />
-                                <span>Monito</span>
-                              </button>
-                            )}
-                            
-                            {user.type === 'member' && (
-                              <button
-                                onClick={() => {
-                                  setPromoteEmail(user.email);
-                                  setActiveSubTab('admins');
-                                }}
-                                className="px-2.5 py-1.5 bg-amber-955 hover:bg-amber-900 text-amber-200 hover:text-white rounded border border-amber-850 transition-all text-xs font-mono flex items-center gap-1.5 shadow"
-                                title="Nomina Coordinatore Amministratore"
-                              >
-                                <UserPlus className="w-3.5 h-3.5 text-amber-400" />
-                                <span>Promuovi</span>
-                              </button>
-                            )}
+            {/* Member cards */}
+            <div className="grid grid-cols-1 gap-4">
+              {filteredSystemUsers.length === 0 ? (
+                <p className="py-12 text-center text-xs font-serif text-on-surface-variant/50 italic">
+                  Nessuna anima registrata risponde al criterio inciso sul papiro.
+                </p>
+              ) : filteredSystemUsers.map((user) => (
+                <div key={user.email}
+                  className={`p-5 md:p-6 rounded-xl border flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 group hover:border-primary/60 transition-all duration-300 shadow-[0_0_15px_rgba(242,202,80,0.04)] hover:shadow-[0_0_20px_rgba(242,202,80,0.1)] ${
+                    user.type === 'master' ? 'border-primary/40 bg-primary/5' :
+                    user.type === 'banned' ? 'border-error/30 bg-error/5' :
+                    'border-outline-variant bg-gradient-to-br from-surface-container to-surface-container-low'
+                  }`}>
 
-                            {user.type === 'admin' && (
-                              <button
-                                onClick={() => onRemoveAdmin(user.email)}
-                                className="px-2.5 py-1.5 bg-pink-955 hover:bg-red-950 text-pink-200 hover:text-red-200 rounded border border-pink-905 transition-all text-xs font-mono flex items-center gap-1.5 shadow"
-                                title="Rimuovi Carica Amministrativa"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>Rimuovi</span>
-                              </button>
-                            )}
-
-                            {user.type !== 'banned' ? (
-                              <button
-                                onClick={() => {
-                                  setBanEmail(user.email);
-                                  setActiveSubTab('bans');
-                                }}
-                                className="px-2.5 py-1.5 bg-rose-955 hover:bg-rose-900 text-rose-200 hover:text-white rounded border border-rose-900 transition-all text-xs font-mono flex items-center gap-1.5 shadow"
-                                title="Sfoltisci / Esilia dal Tempio"
-                              >
-                                <UserX className="w-3.5 h-3.5 text-rose-450" />
-                                <span>Esilia</span>
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => onUnbanUser(user.email)}
-                                className="px-2.5 py-1.5 bg-teal-955 hover:bg-teal-900 text-teal-200 hover:text-white rounded border border-teal-850 transition-all text-xs font-mono flex items-center gap-1.5 shadow"
-                                title="Sospendi Esilio (Concedi Grazia)"
-                              >
-                                <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-                                <span>Grazia</span>
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
+                  {/* Avatar */}
+                  <div className="relative flex-shrink-0">
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl border-2 relative z-10 ${
+                      user.type === 'master' ? 'bg-primary-container/20 border-primary text-primary' :
+                      user.type === 'admin'  ? 'bg-primary-container/10 border-primary/50 text-primary/80' :
+                      user.type === 'banned' ? 'bg-error/10 border-error/40 text-error' :
+                      'bg-surface-container-highest border-outline-variant text-on-surface-variant'
+                    }`}>
+                      {user.name.charAt(0).toUpperCase()}
                     </div>
-                  ))
-                )}
-              </div>
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-20 bg-primary blur-xl transition-opacity rounded-full" />
+                    {user.type === 'master' && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-primary rounded-full border-2 border-surface-container flex items-center justify-center z-20">
+                        <CheckCircle size={10} className="text-on-primary" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h4 className={`font-serif text-lg font-bold ${user.type === 'master' ? 'text-primary' : 'text-on-surface'}`}>
+                        {user.name}
+                      </h4>
+                      <span className={`px-2 py-0.5 text-[9px] font-mono rounded border uppercase tracking-widest ${
+                        user.type === 'master' ? 'bg-primary-container/20 border-primary/30 text-primary' :
+                        user.type === 'admin'  ? 'bg-primary-container/10 border-primary/20 text-primary/80' :
+                        user.type === 'banned' ? 'bg-error/10 border-error/30 text-error' :
+                        'bg-surface-container-high border-outline-variant text-on-surface-variant'
+                      }`}>
+                        {user.role.replace(/\p{Emoji}/gu, '').trim()}
+                      </span>
+                    </div>
+                    <p className="text-on-surface-variant text-xs font-mono truncate mb-1 select-all">{user.email}</p>
+                    {user.details && (
+                      <p className="text-xs italic text-on-surface-variant/70 leading-relaxed">{user.details}</p>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  {user.type !== 'master' && (
+                    <div className="grid grid-cols-3 md:flex md:flex-row gap-2 w-full md:w-auto self-end md:self-center flex-shrink-0">
+                      {user.type !== 'banned' && (
+                        <button
+                          onClick={() => { setWarnEmail(user.email); setActiveSubTab('warnings'); }}
+                          className="flex items-center justify-center gap-1.5 border border-outline-variant py-2 px-3 rounded-lg text-xs font-mono hover:bg-surface-container-high active:scale-95 transition-all"
+                          title="Invia Lettera di Ammonimento">
+                          <Mail size={13} /> <span>Monito</span>
+                        </button>
+                      )}
+                      {user.type === 'member' && (
+                        <button
+                          onClick={() => { setPromoteEmail(user.email); setActiveSubTab('admins'); }}
+                          className="flex items-center justify-center gap-1.5 border border-primary/50 py-2 px-3 rounded-lg text-xs font-mono text-primary hover:bg-primary/10 active:scale-95 transition-all"
+                          title="Nomina Admin">
+                          <UserPlus size={13} /> <span>Promuovi</span>
+                        </button>
+                      )}
+                      {user.type === 'admin' && (
+                        <button
+                          onClick={() => onRemoveAdmin(user.email)}
+                          className="flex items-center justify-center gap-1.5 border border-outline-variant py-2 px-3 rounded-lg text-xs font-mono hover:bg-surface-container-high active:scale-95 transition-all col-span-1"
+                          title="Rimuovi Admin">
+                          <Trash2 size={13} /> <span>Rimuovi</span>
+                        </button>
+                      )}
+                      {user.type !== 'banned' ? (
+                        <button
+                          onClick={() => { setBanEmail(user.email); setActiveSubTab('bans'); }}
+                          className="flex items-center justify-center gap-1.5 border border-error/50 py-2 px-3 rounded-lg text-xs font-mono text-error hover:bg-error/10 active:scale-95 transition-all"
+                          title="Esilia">
+                          <UserX size={13} /> <span>Esilia</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => onUnbanUser(user.email)}
+                          className="flex items-center justify-center gap-1.5 border border-teal-500/40 py-2 px-3 rounded-lg text-xs font-mono text-teal-400 hover:bg-teal-500/10 active:scale-95 transition-all col-span-3"
+                          title="Grazia">
+                          <ShieldCheck size={13} /> <span>Concedi Grazia</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* TAB 1: ADMINS */}
+        {/* ══ TAB: admins ══ */}
         {activeSubTab === 'admins' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
-            {/* Promotion Form */}
-            <div className="bg-surface-dark/40 border border-border/50 rounded-lg p-5">
-              <h3 className="text-sm font-semibold text-amber-500 mb-4 uppercase tracking-wider flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-amber-500" /> Nomina Nuovo Admin Master
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-[fadeIn_0.2s_ease]">
+            <div className="bg-gradient-to-br from-surface-container to-surface-container-low border border-outline-variant rounded-xl p-6">
+              <h3 className="font-serif text-lg text-primary mb-5 flex items-center gap-2">
+                <UserPlus size={18} /> Nomina Nuovo Admin
               </h3>
               <form onSubmit={handlePromote} className="space-y-4">
                 <div className="relative">
-                  <label className="block text-xs font-mono text-gray-400 mb-1">
-                    Indirizzo Email dell'Utente
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="nomeutente@gmail.com"
-                    value={promoteEmail}
+                  <label className="block text-xs font-mono text-on-surface-variant mb-1">Indirizzo Email dell'Utente</label>
+                  <input type="email" required placeholder="nomeutente@gmail.com" value={promoteEmail}
                     onChange={(e) => setPromoteEmail(e.target.value)}
                     onFocus={() => setShowPromoteSuggestions(true)}
-                    onBlur={() => {
-                      setTimeout(() => {
-                        setShowPromoteSuggestions(false);
-                      }, 200);
-                    }}
-                    className="w-full bg-background border border-border focus:border-amber-800 rounded px-3 py-2 text-sm text-white focus:outline-none transition-all placeholder-gray-600 font-sans"
+                    onBlur={() => setTimeout(() => setShowPromoteSuggestions(false), 200)}
+                    className="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary rounded-lg px-3 py-2.5 text-sm text-on-surface focus:outline-none transition-all placeholder:text-outline"
                   />
                   {showPromoteSuggestions && promoteSuggestions.length > 0 && (
-                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-36 overflow-y-auto bg-slate-950 border border-amber-900/40 rounded shadow-2xl backdrop-blur-sm animate-[fadeIn_0.15s_ease]">
+                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-36 overflow-y-auto bg-surface-container-lowest border border-primary/40 rounded-lg shadow-2xl">
                       {promoteSuggestions.map((email) => (
-                        <button
-                          key={email}
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setPromoteEmail(email);
-                            setShowPromoteSuggestions(false);
-                          }}
-                          className="w-full text-left px-3 py-1.5 text-xs font-mono text-gray-300 hover:bg-amber-950/60 hover:text-amber-400 transition-colors border-b border-white/5 last:border-b-0 focus:outline-none"
-                        >
+                        <button key={email} type="button"
+                          onMouseDown={(e) => { e.preventDefault(); setPromoteEmail(email); setShowPromoteSuggestions(false); }}
+                          className="w-full text-left px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors border-b border-outline-variant/30 last:border-0">
                           {email}
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-amber-950 hover:bg-amber-900 text-amber-200 hover:text-white py-2 px-4 rounded border border-amber-800 hover:border-amber-700 transition-all text-xs uppercase font-mono tracking-wider flex items-center justify-center gap-2 shadow"
-                >
-                  {isSubmitting ? 'Inscrizione...' : 'Elevare a Grimoire Master ⚜️'}
+                <button type="submit" disabled={isSubmitting}
+                  className="w-full bg-primary-container/20 hover:bg-primary-container/30 text-primary py-2.5 px-4 rounded-lg border border-primary/50 hover:border-primary transition-all text-xs uppercase font-mono tracking-wider flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50">
+                  {isSubmitting ? 'Inscrizione...' : 'Elevare a Grimoire Admin ⚜️'}
                 </button>
               </form>
-              <div className="mt-4 bg-amber-950/10 border border-amber-950/30 p-3 rounded text-xs text-amber-600 leading-relaxed font-serif">
-                Nota: L'utente riceverà una pergamena dorata istantanea notificandogli il grado d'onore e l'accesso esclusivo.
-              </div>
+              <p className="mt-4 text-xs font-serif text-on-surface-variant/50 italic leading-relaxed border-t border-outline-variant/40 pt-3">
+                L'utente riceverà una pergamena dorata notificandogli il grado d'onore e l'accesso esclusivo.
+              </p>
             </div>
 
-            {/* Admins List */}
-            <div className="bg-surface-dark/40 border border-border/50 rounded-lg p-5 flex flex-col">
-              <h3 className="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">
-                Consiglio degli Amministratori
-              </h3>
-              <div className="flex-1 overflow-y-auto max-h-[220px] space-y-3 pr-1">
+            <div className="bg-gradient-to-br from-surface-container to-surface-container-low border border-outline-variant rounded-xl p-6 flex flex-col">
+              <h3 className="font-serif text-lg text-on-surface mb-4">Consiglio degli Amministratori</h3>
+              <div className="flex-1 overflow-y-auto max-h-64 space-y-2 pr-1">
                 {adminsList.length === 0 ? (
-                  <p className="text-xs text-gray-500 font-mono italic text-center py-6">
-                    Nessun amministratore designato.
-                  </p>
-                ) : (
-                  adminsList.map((admin) => (
-                    <div
-                      key={admin.email}
-                      className="flex items-center justify-between p-3 rounded border border-border bg-background/50 hover:bg-background/80 transition-all"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-white truncate max-w-[200px]">
-                          {admin.email}
-                        </p>
-                        <p className="text-[10px] font-mono text-gray-400">
-                          {new Date(admin.createdAt).toLocaleDateString()} — {admin.promotedBy?.split('@')[0]}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => onRemoveAdmin(admin.email)}
-                        className="text-gray-500 hover:text-red-500 transition-colors p-1"
-                        title="Rimuovi Carica Admin"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                  <p className="text-xs font-serif text-on-surface-variant/50 italic text-center py-8">Nessun amministratore designato.</p>
+                ) : adminsList.map((admin) => (
+                  <div key={admin.email} className="flex items-center justify-between p-3 rounded-lg border border-outline-variant bg-surface-container-lowest hover:border-primary/30 transition-all">
+                    <div>
+                      <p className="text-sm font-medium text-on-surface truncate max-w-[200px]">{admin.email}</p>
+                      <p className="text-[10px] font-mono text-on-surface-variant mt-0.5">{new Date(admin.createdAt).toLocaleDateString('it-IT')} — {admin.promotedBy?.split('@')[0]}</p>
                     </div>
-                  ))
-                )}
+                    <button onClick={() => onRemoveAdmin(admin.email)}
+                      className="text-on-surface-variant hover:text-error transition-colors p-1.5 rounded hover:bg-error/10" title="Rimuovi Admin">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* TAB 2: BANS */}
+        {/* ══ TAB: bans ══ */}
         {activeSubTab === 'bans' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
-            {/* Ban form */}
-            <div className="bg-surface-dark/40 border border-border/50 rounded-lg p-5">
-              <h3 className="text-sm font-semibold text-rose-500 mb-4 uppercase tracking-wider flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-rose-500" /> Comanda Decreto d'Esilio
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-[fadeIn_0.2s_ease]">
+            <div className="bg-gradient-to-br from-surface-container to-surface-container-low border border-outline-variant rounded-xl p-6">
+              <h3 className="font-serif text-lg text-error mb-5 flex items-center gap-2">
+                <ShieldAlert size={18} /> Decreto d'Esilio
               </h3>
               <form onSubmit={handleBan} className="space-y-4">
                 <div className="relative">
-                  <label className="block text-xs font-mono text-gray-400 mb-1">
-                    Indirizzo Email dell'Eretico
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="eretico@gmail.com"
-                    value={banEmail}
+                  <label className="block text-xs font-mono text-on-surface-variant mb-1">Email dell'Eretico</label>
+                  <input type="email" required placeholder="eretico@gmail.com" value={banEmail}
                     onChange={(e) => setBanEmail(e.target.value)}
                     onFocus={() => setShowBanSuggestions(true)}
-                    onBlur={() => {
-                      setTimeout(() => {
-                        setShowBanSuggestions(false);
-                      }, 200);
-                    }}
-                    className="w-full bg-background border border-border focus:border-rose-900 rounded px-3 py-2 text-sm text-white focus:outline-none transition-all placeholder-gray-600 font-sans"
+                    onBlur={() => setTimeout(() => setShowBanSuggestions(false), 200)}
+                    className="w-full bg-surface-container-lowest border border-outline-variant focus:border-error rounded-lg px-3 py-2.5 text-sm text-on-surface focus:outline-none transition-all placeholder:text-outline"
                   />
                   {showBanSuggestions && banSuggestions.length > 0 && (
-                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-36 overflow-y-auto bg-slate-950 border border-rose-900/40 rounded shadow-2xl backdrop-blur-sm animate-[fadeIn_0.15s_ease]">
+                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-36 overflow-y-auto bg-surface-container-lowest border border-error/40 rounded-lg shadow-2xl">
                       {banSuggestions.map((email) => (
-                        <button
-                          key={email}
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setBanEmail(email);
-                            setShowBanSuggestions(false);
-                          }}
-                          className="w-full text-left px-3 py-1.5 text-xs font-mono text-gray-300 hover:bg-rose-950/60 hover:text-rose-400 transition-colors border-b border-white/5 last:border-b-0 focus:outline-none"
-                        >
+                        <button key={email} type="button"
+                          onMouseDown={(e) => { e.preventDefault(); setBanEmail(email); setShowBanSuggestions(false); }}
+                          className="w-full text-left px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors border-b border-outline-variant/30 last:border-0">
                           {email}
                         </button>
                       ))}
@@ -649,110 +580,64 @@ export default function AdminCourt({
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-gray-400 mb-1">
-                    Atto dell'Accusa / Motivo dell'esilio
-                  </label>
-                  <textarea
-                    required
-                    rows={3}
-                    placeholder="E.g., Pubblicazione di schede blasfeme o spam ripetuto..."
-                    value={banReasonInput}
-                    onChange={(e) => setBanReasonInput(e.target.value)}
-                    className="w-full bg-background border border-border focus:border-rose-955 rounded px-3 py-2 text-xs text-white focus:outline-none transition-all placeholder-gray-600 font-sans resize-none"
-                  />
+                  <label className="block text-xs font-mono text-on-surface-variant mb-1">Motivo dell'Esilio</label>
+                  <textarea required rows={3} placeholder="E.g., Pubblicazione di schede blasfeme o spam ripetuto..."
+                    value={banReasonInput} onChange={(e) => setBanReasonInput(e.target.value)}
+                    className="w-full bg-surface-container-lowest border border-outline-variant focus:border-error rounded-lg px-3 py-2 text-xs text-on-surface focus:outline-none transition-all placeholder:text-outline resize-none" />
                 </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-rose-950/80 hover:bg-rose-900 text-rose-200 hover:text-white py-2 px-4 rounded border border-rose-900 hover:border-rose-800 transition-all text-xs uppercase font-mono tracking-wider flex items-center justify-center gap-2 shadow"
-                >
+                <button type="submit" disabled={isSubmitting}
+                  className="w-full bg-error/10 hover:bg-error/20 text-error py-2.5 px-4 rounded-lg border border-error/50 hover:border-error transition-all text-xs uppercase font-mono tracking-wider flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50">
                   {isSubmitting ? 'Inscrizione...' : 'Bandisci dal Regno 🚫'}
                 </button>
               </form>
             </div>
 
-            {/* Banned list */}
-            <div className="bg-surface-dark/40 border border-border/50 rounded-lg p-5 flex flex-col">
-              <h3 className="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">
-                Anime Bandite dal Grembo
-              </h3>
-              <div className="flex-1 overflow-y-auto max-h-[220px] space-y-3 pr-1">
+            <div className="bg-gradient-to-br from-surface-container to-surface-container-low border border-outline-variant rounded-xl p-6 flex flex-col">
+              <h3 className="font-serif text-lg text-on-surface mb-4">Anime Bandite dal Grembo</h3>
+              <div className="flex-1 overflow-y-auto max-h-64 space-y-2 pr-1">
                 {bannedList.length === 0 ? (
-                  <p className="text-xs text-gray-500 font-mono italic text-center py-6">
-                    Nessun utente sotto giudizio d'esilio.
-                  </p>
-                ) : (
-                  bannedList.map((ban) => (
-                    <div
-                      key={ban.email}
-                      className="p-3 rounded border border-rose-950 bg-rose-950/5 hover:bg-rose-950/10 transition-all flex items-start justify-between gap-2"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-red-400 truncate">
-                          {ban.email}
-                        </p>
-                        <p className="text-xs font-serif text-gray-300 leading-snug mt-1 italic">
-                          " {ban.reason} "
-                        </p>
-                        <p className="text-[9px] font-mono text-gray-500 mt-2">
-                          {new Date(ban.createdAt).toLocaleDateString()} — Bandito da {ban.bannedBy?.split('@')[0]}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => onUnbanUser(ban.email)}
-                        className="text-gray-500 hover:text-green-500 transition-colors p-1"
-                        title="Concedi Grazia (Revoca Esilio)"
-                      >
-                        <ShieldCheck className="w-4 h-4" />
-                      </button>
+                  <p className="text-xs font-serif text-on-surface-variant/50 italic text-center py-8">Nessun utente sotto giudizio d'esilio.</p>
+                ) : bannedList.map((ban) => (
+                  <div key={ban.email} className="p-3 rounded-lg border border-error/30 bg-error/5 flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-error truncate">{ban.email}</p>
+                      <p className="text-xs font-serif text-on-surface-variant italic leading-snug mt-0.5">"{ban.reason}"</p>
+                      <p className="text-[9px] font-mono text-on-surface-variant/50 mt-1">{new Date(ban.createdAt).toLocaleDateString('it-IT')} — {ban.bannedBy?.split('@')[0]}</p>
                     </div>
-                  ))
-                )}
+                    <button onClick={() => onUnbanUser(ban.email)}
+                      className="text-on-surface-variant hover:text-teal-400 transition-colors p-1.5 rounded hover:bg-teal-400/10 flex-shrink-0" title="Concedi Grazia">
+                      <ShieldCheck size={15} />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* TAB 3: WARNING COURIER */}
+        {/* ══ TAB: warnings ══ */}
         {activeSubTab === 'warnings' && (
-          <div className="max-w-xl mx-auto animate-fade-in">
-            <div className="bg-surface-dark/40 border border-border/50 rounded-lg p-5">
-              <h3 className="text-sm font-semibold text-blue-400 mb-4 uppercase tracking-wider flex items-center gap-2">
-                <Send className="w-4 h-4 text-blue-400" /> Spedisci Lettera di Monito Arcana
+          <div className="max-w-xl mx-auto animate-[fadeIn_0.2s_ease]">
+            <div className="bg-gradient-to-br from-surface-container to-surface-container-low border border-outline-variant rounded-xl p-6">
+              <h3 className="font-serif text-lg text-blue-400 mb-5 flex items-center gap-2">
+                <Send size={18} /> Spedisci Lettera di Monito Arcana
               </h3>
               <form onSubmit={handleSendWarning} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="relative">
-                    <label className="block text-xs font-mono text-gray-400 mb-1">
-                      Destinatario (Email)
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="utente@gmail.com"
-                      value={warnEmail}
+                    <label className="block text-xs font-mono text-on-surface-variant mb-1">Destinatario (Email)</label>
+                    <input type="email" required placeholder="utente@gmail.com" value={warnEmail}
                       onChange={(e) => setWarnEmail(e.target.value)}
                       onFocus={() => setShowWarnSuggestions(true)}
-                      onBlur={() => {
-                        setTimeout(() => {
-                          setShowWarnSuggestions(false);
-                        }, 200);
-                      }}
-                      className="w-full bg-background border border-border focus:border-blue-900 rounded px-3 py-2 text-sm text-white focus:outline-none transition-all placeholder-gray-600 font-sans"
+                      onBlur={() => setTimeout(() => setShowWarnSuggestions(false), 200)}
+                      className="w-full bg-surface-container-lowest border border-outline-variant focus:border-blue-700 rounded-lg px-3 py-2.5 text-sm text-on-surface focus:outline-none transition-all placeholder:text-outline"
                     />
                     {showWarnSuggestions && warnSuggestions.length > 0 && (
-                      <div className="absolute left-0 right-0 z-50 mt-1 max-h-36 overflow-y-auto bg-slate-950 border border-blue-900/40 rounded shadow-2xl backdrop-blur-sm animate-[fadeIn_0.15s_ease]">
+                      <div className="absolute left-0 right-0 z-50 mt-1 max-h-36 overflow-y-auto bg-surface-container-lowest border border-blue-900/40 rounded-lg shadow-2xl">
                         {warnSuggestions.map((email) => (
-                          <button
-                            key={email}
-                            type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setWarnEmail(email);
-                              setShowWarnSuggestions(false);
-                            }}
-                            className="w-full text-left px-3 py-1.5 text-xs font-mono text-gray-300 hover:bg-blue-950/60 hover:text-blue-400 transition-colors border-b border-white/5 last:border-b-0 focus:outline-none"
-                          >
+                          <button key={email} type="button"
+                            onMouseDown={(e) => { e.preventDefault(); setWarnEmail(email); setShowWarnSuggestions(false); }}
+                            className="w-full text-left px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:bg-blue-950/60 hover:text-blue-400 transition-colors border-b border-outline-variant/30 last:border-0">
                             {email}
                           </button>
                         ))}
@@ -760,44 +645,39 @@ export default function AdminCourt({
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-mono text-gray-400 mb-1">
-                      Sigillo e Soggetto della Pergamena
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Soggetto"
-                      value={warnSubject}
+                    <label className="block text-xs font-mono text-on-surface-variant mb-1">Soggetto della Pergamena</label>
+                    <input type="text" required placeholder="Soggetto" value={warnSubject}
                       onChange={(e) => setWarnSubject(e.target.value)}
-                      className="w-full bg-background border border-border focus:border-blue-900 rounded px-3 py-2 text-sm text-white focus:outline-none transition-all placeholder-gray-600 font-sans"
+                      className="w-full bg-surface-container-lowest border border-outline-variant focus:border-blue-700 rounded-lg px-3 py-2.5 text-sm text-on-surface focus:outline-none transition-all placeholder:text-outline"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-gray-400 mb-1">
-                    Runa di Ammonimento (Messaggio Corposo)
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    placeholder="Il Tempio osserva ogni tua azione. La scheda da te pubblicata presenta contenuti impropri..."
-                    value={warnContent}
-                    onChange={(e) => setWarnContent(e.target.value)}
-                    className="w-full bg-background border border-border focus:border-blue-900 rounded px-3 py-2 text-xs text-white focus:outline-none transition-all placeholder-gray-600 font-sans resize-none font-serif leading-relaxed"
+                  <label className="block text-xs font-mono text-on-surface-variant mb-1">Runa di Ammonimento (Messaggio)</label>
+                  <textarea required rows={5} placeholder="Il Tempio osserva ogni tua azione..."
+                    value={warnContent} onChange={(e) => setWarnContent(e.target.value)}
+                    className="w-full bg-surface-container-lowest border border-outline-variant focus:border-blue-700 rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none transition-all placeholder:text-outline resize-none font-serif leading-relaxed"
                   />
                 </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-blue-950/80 hover:bg-blue-900 text-blue-200 hover:text-white py-2 px-4 rounded border border-blue-900 hover:border-blue-800 transition-all text-xs uppercase font-mono tracking-wider flex items-center justify-center gap-2 shadow"
-                >
+                <button type="submit" disabled={isSubmitting}
+                  className="w-full bg-blue-950/80 hover:bg-blue-900 text-blue-200 hover:text-white py-2.5 px-4 rounded-lg border border-blue-900 hover:border-blue-700 transition-all text-xs uppercase font-mono tracking-wider flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50">
                   {isSubmitting ? 'Inscrizione...' : 'Consegna Messaggio Solenne ✉️'}
                 </button>
               </form>
             </div>
           </div>
         )}
+
       </div>
+
+      {/* ── Decorative footer ── */}
+      <div className="mt-16 flex flex-col items-center opacity-20 select-none pointer-events-none">
+        <div className="w-24 h-24 border-4 border-dashed border-outline-variant rounded-full flex items-center justify-center animate-[spin_20s_linear_infinite]">
+          <span className="text-4xl">⚜</span>
+        </div>
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.3em] text-on-surface-variant">Grimorio Attivo</p>
+      </div>
+
     </div>
   );
 }

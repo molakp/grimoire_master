@@ -2,7 +2,7 @@ import { useState, useMemo, FormEvent } from 'react';
 import { CharacterTemplate, Character, Spell, Mail, BannedUser, Admin, UserProfile } from '../types';
 import { COMMUNITY_CHARACTERS } from '../data';
 import { useTemplates } from '../hooks/useTemplates';
-import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Skull, AlertCircle, Users } from 'lucide-react';
+import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, ArrowLeft, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Skull, AlertCircle, Users, X, ScrollText, Edit3 } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import AdminCourt from './AdminCourt';
 import CharacterCreationWizard from './CharacterCreationWizard';
@@ -39,6 +39,19 @@ interface DashboardProps {
   onPublishCommunityCharacter: (char: Character, description: string) => Promise<void>;
   onDeleteCommunityCharacter: (commId: string) => Promise<void>;
 }
+
+const _mailAge = (iso: string): string => {
+  const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3600000);
+  const d = Math.floor(h / 24);
+  if (h < 1) return 'ORA';
+  if (h < 24) return `${h}H FA`;
+  if (d === 1) return 'IERI';
+  return `${d}G FA`;
+};
+const _mailSender = (m: { type: string }) =>
+  m.type === 'warning' ? 'Consiglio Arcante' : 'Gilda del Grimorio';
+const _DECKLE =
+  'polygon(0% 0%,5% 1%,10% 0%,15% 2%,20% 0%,25% 1%,30% 0%,35% 2%,40% 0%,45% 1%,50% 0%,55% 2%,60% 0%,65% 1%,70% 0%,75% 2%,80% 0%,85% 1%,90% 0%,95% 2%,100% 0%,100% 100%,95% 98%,90% 100%,85% 99%,80% 100%,75% 98%,70% 100%,65% 99%,60% 100%,55% 98%,50% 100%,45% 99%,40% 100%,35% 98%,30% 100%,25% 99%,20% 100%,15% 98%,10% 100%,5% 99%,0% 100%)';
 
 export default function Dashboard({
   onImportCharacter,
@@ -85,6 +98,9 @@ export default function Dashboard({
   // Correspondence mailbox popup state
   const [isMailboxOpen, setIsMailboxOpen] = useState(false);
   const [selectedMail, setSelectedMail] = useState<Mail | null>(null);
+  const [mobileMailDetail, setMobileMailDetail] = useState(false);
+  const closeMailbox = () => { setIsMailboxOpen(false); setSelectedMail(null); setMobileMailDetail(false); };
+  const openMailItem = (mail: Mail) => { setSelectedMail(mail); setMobileMailDetail(true); if (!mail.read) onMarkMailRead(mail.id); };
 
   // New Official Template Creation Modal state
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
@@ -832,129 +848,160 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* 📬 LA BUCHETTA DELLE CORRISPONDENZE (MAILBOX MODAL) */}
+      {/* 📬 EPISTOLARIO DEL GRIMORIO (FULL-SCREEN MAILBOX) */}
       {isMailboxOpen && (
-        <div 
-          className="fixed inset-0 z-[10005] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-[fadeIn_0.2s_ease]"
-          onClick={() => {
-            setIsMailboxOpen(false);
-            setSelectedMail(null);
-          }}
-        >
-          <div 
-            className="parchment-bg border border-amber-800 shadow-[0_0_50px_rgba(242,202,80,0.25)] rounded-lg max-w-3xl w-full p-6 flex flex-col relative gap-4 max-h-[90vh] overflow-hidden animate-[scaleUp_0.2s_ease]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Top gold seal line */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-700"></div>
-
-            <div className="flex justify-between items-center border-b border-amber-900/20 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">✉️</span>
-                <h3 className="font-serif text-lg text-amber-900 uppercase font-black tracking-widest">
-                  Epistolario del Grimorio
-                </h3>
-              </div>
-              <button 
-                onClick={() => {
-                  setIsMailboxOpen(false);
-                  setSelectedMail(null);
-                }}
-                className="text-amber-950 font-mono text-xs hover:underline uppercase font-bold"
-              >
-                Chiudi Dispacci
-              </button>
+        <div className="fixed inset-0 z-[10010] flex flex-col bg-background animate-[fadeIn_0.2s_ease]">
+          {/* HEADER */}
+          <header className="flex-shrink-0 flex justify-between items-center px-4 md:px-12 h-16 border-b border-outline-variant bg-surface-container-lowest shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center gap-3">
+              <ScrollText size={22} className="text-primary" />
+              <h1 className="font-serif text-lg md:text-2xl text-primary font-bold tracking-widest uppercase drop-shadow-[0_0_8px_rgba(242,202,80,0.4)]">Epistolario del Grimorio</h1>
             </div>
+            <div className="flex items-center gap-3">
+              <button onClick={closeMailbox} className="hidden md:flex items-center gap-2 px-5 py-2 rounded border border-primary text-primary text-xs font-mono uppercase tracking-widest hover:bg-primary/10 transition-all active:scale-95">
+                <X size={13} /> Chiudi Dispacci
+              </button>
+              <button onClick={closeMailbox} className="md:hidden p-2 text-primary hover:bg-primary/10 rounded"><X size={20} /></button>
+            </div>
+          </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[350px] overflow-hidden">
-              {/* Letters list */}
-              <div className="border-r border-amber-950/20 pr-4 flex flex-col gap-3 overflow-y-auto max-h-[350px]">
-                <h4 className="text-xs font-mono text-amber-800 uppercase tracking-widest font-black mb-2">
-                  Rune Recenti
-                </h4>
-                {allMails.length === 0 ? (
-                  <div className="text-center py-12 text-xs italic font-serif text-amber-900/60">
-                    Nessuna pergamena recapitata in questa buchetta.
-                  </div>
-                ) : (
-                  allMails.map((mail) => {
-                    const isUnread = !mail.read;
+          {/* MOBILE TAB BAR (visible on < lg) */}
+          <nav className="lg:hidden flex-shrink-0 flex items-center gap-1 px-3 py-2 bg-surface-container-low border-b border-outline-variant overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+            {[
+              { Icon: ScrollText, label: 'Epistolario', active: true },
+              { Icon: BookOpen,   label: 'Cronache',    active: false },
+              { Icon: Bookmark,   label: 'Salvati',     active: false },
+              ...(isMasterAdmin ? [{ Icon: Shield as typeof Shield, label: 'Admin', active: false }] : []),
+            ].map(({ Icon, label, active }) => (
+              <button key={label} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide flex-shrink-0 transition-all ${
+                active
+                  ? 'bg-primary text-background font-bold shadow-[0_0_10px_rgba(242,202,80,0.3)]'
+                  : 'text-on-surface-variant border border-outline-variant hover:border-primary/50 hover:text-primary'
+              }`}>
+                <Icon size={13} />{label}
+              </button>
+            ))}
+            <button className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide flex-shrink-0 border border-primary/40 text-primary hover:bg-primary/10 transition-all">
+              <Edit3 size={13} /> Componi
+            </button>
+          </nav>
+
+          <div className="flex flex-1 overflow-hidden">
+            {/* SIDEBAR desktop */}
+            <nav className="hidden lg:flex flex-col p-4 gap-2 w-64 border-r border-outline-variant bg-surface-container-low flex-shrink-0">
+              <div className="mb-6 p-3">
+                <p className="font-mono text-[10px] text-primary/70 tracking-widest uppercase">Archivista</p>
+                <p className="font-serif text-lg text-on-surface font-bold">Grimoire Master</p>
+              </div>
+              {[
+                { Icon: ScrollText, label: 'Epistolario', active: true },
+                { Icon: BookOpen,   label: 'Cronache',    active: false },
+                { Icon: Bookmark,   label: 'Salvati',     active: false },
+                ...(isMasterAdmin ? [{ Icon: Shield as typeof Shield, label: 'Admin', active: false }] : []),
+              ].map(({ Icon, label, active }) => (
+                <div key={label} className={`flex items-center gap-3 p-3 rounded-lg cursor-default transition-all ${
+                  active ? 'bg-primary-container text-on-primary-container font-bold shadow-[0_0_12px_rgba(233,195,73,0.25)]'
+                         : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary'
+                }`}><Icon size={18} /><span className="font-sans text-sm">{label}</span></div>
+              ))}
+              <div className="mt-auto">
+                <button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary/10 to-primary-container/30 border border-primary text-primary p-3 rounded-xl font-serif text-sm hover:shadow-[0_0_20px_rgba(242,202,80,0.25)] transition-all">
+                  <Edit3 size={16} /> Componi Pergamena
+                </button>
+              </div>
+            </nav>
+
+            <main className="flex-1 flex overflow-hidden">
+              {/* MESSAGE LIST */}
+              <section className={`flex-shrink-0 w-full md:w-[360px] border-r border-outline-variant bg-surface flex flex-col overflow-hidden ${
+                mobileMailDetail ? 'hidden md:flex' : 'flex'
+              }`}>
+                <div className="flex-shrink-0 p-4 border-b border-outline-variant">
+                  <h2 className="font-mono text-[11px] text-on-surface-variant uppercase tracking-widest">⧖ Rune Recenti</h2>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
+                  {allMails.length === 0 ? (
+                    <p className="text-center py-16 text-xs italic font-serif text-on-surface-variant/50">Nessuna pergamena recapitata.</p>
+                  ) : allMails.map((mail) => {
+                    const unread = !mail.read;
+                    const isActive = selectedMail?.id === mail.id;
                     return (
-                      <div
-                        key={mail.id}
-                        onClick={() => {
-                          setSelectedMail(mail);
-                          if (isUnread) {
-                            onMarkMailRead(mail.id);
-                          }
-                        }}
-                        className={`p-3 rounded border text-left cursor-pointer transition-all ${
-                          selectedMail?.id === mail.id
-                            ? 'bg-amber-950/20 border-amber-800 shadow-md'
-                            : isUnread
-                            ? 'bg-amber-100/40 border-amber-600 font-bold'
-                            : 'bg-warm-gray-100/20 border-amber-900/10 hover:bg-amber-100/10'
+                      <div key={mail.id} onClick={() => openMailItem(mail)}
+                        className={`p-4 rounded-r-lg border-l-4 cursor-pointer transition-all active:scale-[0.98] ${
+                          isActive ? 'bg-surface-container-high border-primary'
+                          : unread ? 'bg-surface-container border-primary/50 hover:bg-surface-container-high'
+                          : 'bg-surface-container-low border-transparent hover:bg-surface-container-high hover:border-outline'
                         }`}
                       >
-                        <div className="flex justify-between items-start gap-1">
-                          <p className="text-xs font-serif text-amber-950 truncate max-w-[170px]">
-                            {mail.subject}
-                          </p>
-                          {isUnread && (
-                            <span className="w-1.5 h-1.5 bg-amber-600 rounded-full animate-ping flex-shrink-0" />
-                          )}
+                        <div className="flex items-start gap-3">
+                          <div className="md:hidden flex-shrink-0 w-11 h-11 rounded-lg bg-surface-container-high border border-primary/30 flex items-center justify-center text-xl">
+                            {mail.type === 'warning' ? '⚔️' : '📜'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start gap-1 mb-0.5">
+                              <span className={`text-sm truncate ${unread ? 'font-bold text-primary' : 'font-medium text-on-surface'}`}>{_mailSender(mail)}</span>
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                {unread && <span className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                                <span className="font-mono text-[10px] text-primary/80">{_mailAge(mail.createdAt)}</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-on-surface italic font-serif line-clamp-1">{mail.subject}</p>
+                            <p className="text-[11px] text-on-surface-variant line-clamp-1 mt-0.5">{mail.content}</p>
+                          </div>
                         </div>
-                        <p className="text-[10px] text-amber-900/60 truncate mt-1">
-                          {mail.content}
-                        </p>
-                        <p className="text-[8px] font-mono text-amber-900/50 mt-2">
-                          {new Date(mail.createdAt).toLocaleDateString()}
-                        </p>
                       </div>
                     );
-                  })
-                )}
-              </div>
+                  })}
+                </div>
+              </section>
 
-              {/* Letter details */}
-              <div className="flex flex-col justify-between bg-[#fcf9eb] border border-amber-900/10 p-5 rounded relative overflow-y-auto max-h-[350px]">
+              {/* READING PANE */}
+              <section className={`flex-1 bg-surface-container-lowest flex items-center justify-center relative overflow-hidden p-6 md:p-12 ${
+                mobileMailDetail ? 'flex' : 'hidden md:flex'
+              }`}>
+                <button onClick={() => setMobileMailDetail(false)} className="md:hidden absolute top-4 left-4 z-10 flex items-center gap-1.5 text-primary text-sm font-mono">
+                  <ArrowLeft size={16} /> Lista
+                </button>
+                <div className="absolute inset-0 pointer-events-none opacity-15">
+                  <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-primary blur-[100px] rounded-full" />
+                  <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-secondary blur-[80px] rounded-full" />
+                </div>
                 {selectedMail ? (
-                  <div className="flex flex-col gap-4">
-                    {/* Decorative wax seal symbol */}
-                    <div className="absolute right-4 top-4 select-none opacity-20 transform rotate-12">
-                      <span className="text-5xl text-red-800">⚜️</span>
+                  <article className="relative w-full max-w-xl flex flex-col p-8 md:p-14 transform rotate-1 hover:rotate-0 transition-transform duration-700 shadow-2xl overflow-y-auto"
+                    style={{ backgroundColor:'#f4ecd8', backgroundImage:'radial-gradient(circle at 50% 0%,rgba(255,255,255,0.35) 0%,transparent 60%)', boxShadow:'inset 0 0 60px rgba(139,69,19,0.12),0 12px 48px rgba(0,0,0,0.65)', clipPath:_DECKLE, maxHeight:'calc(100vh - 5rem)' }}>
+                    <div className="absolute top-5 left-5 border-t-2 border-l-2 border-black/10 w-10 h-10" />
+                    <div className="absolute bottom-5 right-5 border-b-2 border-r-2 border-black/10 w-10 h-10" />
+                    <div className="flex justify-center mb-6">
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center text-white/60 text-2xl"
+                        style={{ background:'radial-gradient(circle at 35% 35%,#b22222,#6b0000)', boxShadow:'2px 2px 6px rgba(0,0,0,0.5),inset -2px -2px 4px rgba(0,0,0,0.3)' }}>⚜</div>
                     </div>
-
-                    <div>
-                      <h4 className="font-serif text-md text-amber-900 font-extrabold select-all">
-                        {selectedMail.subject}
-                      </h4>
-                      <p className="text-[9px] font-mono text-amber-700 mt-1 uppercase">
-                        Mittente: Consiglio Arcante • {new Date(selectedMail.createdAt).toLocaleDateString()}
-                      </p>
+                    <div className="mb-6 border-b border-black/10 pb-5 flex justify-between items-end">
+                      <div>
+                        <p className="font-mono text-[10px] text-stone-500 uppercase tracking-widest mb-1">Mittente</p>
+                        <h2 className="font-serif text-2xl text-stone-900 italic">{_mailSender(selectedMail)}</h2>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-mono text-[10px] text-stone-500 uppercase mb-1">Datazione</p>
+                        <p className="font-sans text-sm text-stone-700 font-semibold">{new Date(selectedMail.createdAt).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})}</p>
+                      </div>
                     </div>
-
-                    <div className="border-t border-amber-900/10 pt-3">
-                      <p className="font-serif text-sm text-amber-950 leading-relaxed italic whitespace-pre-line select-all">
-                        {selectedMail.content}
-                      </p>
+                    <div className="flex-1 font-serif text-stone-800 leading-relaxed space-y-4">
+                      <p className="text-lg font-bold text-stone-900">{selectedMail.subject}</p>
+                      <p className="text-base italic whitespace-pre-line">{selectedMail.content}</p>
                     </div>
-
-                    <div className="pt-6 text-right font-serif text-xs text-amber-900/70 border-t border-amber-900/10 border-dashed mt-auto">
-                      Spesso a Te consacrato,<br />
-                      <span className="font-bold">Gilda del Grimorio</span>
+                    <div className="mt-10 text-right border-t border-black/10 pt-5">
+                      <p className="font-serif text-xl text-stone-900 italic">Gilda del Grimorio</p>
+                      <p className="font-mono text-[10px] text-stone-400 uppercase mt-1">Sigillato col sigillo arcante</p>
                     </div>
-                  </div>
+                  </article>
                 ) : (
-                  <div className="my-auto text-center py-6">
-                    <span className="text-3xl text-amber-900/30">📜</span>
-                    <p className="text-xs font-serif text-amber-900/60 italic mt-2">
-                      Spezza il sigillo di ceralacca di una pergamena per leggerne i mandati celesti.
-                    </p>
+                  <div className="text-center opacity-40">
+                    <p className="text-5xl mb-4">📜</p>
+                    <p className="font-serif text-on-surface-variant italic text-sm">Seleziona una pergamena per leggerne i mandati.</p>
                   </div>
                 )}
-              </div>
-            </div>
+              </section>
+            </main>
           </div>
         </div>
       )}

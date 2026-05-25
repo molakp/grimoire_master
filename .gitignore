@@ -5,3 +5,4 @@
 dungeonworld-ita-master
 .DS_Store
 *gen-lang-client*
+*.cache
