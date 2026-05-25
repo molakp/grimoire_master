@@ -2,7 +2,7 @@ import { useState, useMemo, FormEvent } from 'react';
 import { CharacterTemplate, Character, Spell, Mail, BannedUser, Admin, UserProfile } from '../types';
 import { COMMUNITY_CHARACTERS } from '../data';
 import { useTemplates } from '../hooks/useTemplates';
-import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Skull, AlertCircle } from 'lucide-react';
+import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Skull, AlertCircle, Users } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import AdminCourt from './AdminCourt';
 import CharacterCreationWizard from './CharacterCreationWizard';
@@ -319,12 +319,7 @@ export default function Dashboard({
             </button>
           )}
 
-          <button 
-            onClick={() => setActiveTab('my-characters')}
-            className={`md:hidden flex items-center gap-1 px-3 py-1.5 bg-surface-container-high rounded text-xs font-mono border border-primary/20 ${activeTab === 'my-characters' ? 'text-primary' : 'text-on-surface-variant'}`}
-          >
-            Personaggi ({myCharacters.length})
-          </button>
+
 
           {/* Firebase Authentication UI Badge */}
           <div className="flex items-center gap-2 border-l border-outline-variant pl-4">
@@ -370,7 +365,7 @@ export default function Dashboard({
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-12 space-y-16">
+      <main className="max-w-7xl mx-auto px-6 py-12 space-y-16 pb-24 md:pb-12">
         
         {activeTab === 'court' && isMasterAdmin ? (
           <div className="animate-[fadeIn_0.32s_ease]">
@@ -1076,6 +1071,41 @@ export default function Dashboard({
           </div>
         </div>
       )}
+
+      {/* ── BOTTOM NAV (mobile only) ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full z-[70] bg-surface-container-highest border-t border-primary/20 shadow-[0_-4px_16px_rgba(0,0,0,0.6)] rounded-t-xl flex justify-around items-center h-16">
+        <button
+          onClick={() => setActiveTab('my-characters')}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all active:scale-90 ${
+            activeTab === 'my-characters' ? 'text-primary drop-shadow-[0_0_8px_rgba(242,202,80,0.5)]' : 'text-on-surface-variant opacity-60'
+          }`}
+        >
+          <Users size={22} />
+          <span className="text-[10px] font-mono uppercase tracking-wider">Personaggi</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('library')}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all active:scale-90 ${
+            activeTab === 'library' ? 'text-primary drop-shadow-[0_0_8px_rgba(242,202,80,0.5)]' : 'text-on-surface-variant opacity-60'
+          }`}
+        >
+          <BookOpen size={22} />
+          <span className="text-[10px] font-mono uppercase tracking-wider">Libreria</span>
+        </button>
+
+        {isMasterAdmin && (
+          <button
+            onClick={() => setActiveTab('court')}
+            className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all active:scale-90 ${
+              activeTab === 'court' ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'text-on-surface-variant opacity-60'
+            }`}
+          >
+            <Shield size={22} />
+            <span className="text-[10px] font-mono uppercase tracking-wider">Corte</span>
+          </button>
+        )}
+      </nav>
 
       {isWizardOpen && (
         <CharacterCreationWizard
