@@ -1,0 +1,89 @@
+{
+  "id": "t_druid",
+  "name": "The Druid",
+  "class": "Il Druido",
+  "type": "Primal Class",
+  "description": "Guardiano della natura e mutaforma. Si trasforma in bestie e parla con gli spiriti del mondo naturale.",
+  "icon": "eco",
+  "avatar": "/images/classes/ethanwe-elfo-druido.jpeg",
+  "races": [
+    { "id": "elfo",     "name": "Elfo",     "bonusAttribute": "SAG", "bonusValue": 1, "moveDescription": "Puoi trasformarti nella forma di qualsiasi animale addomesticato, non solo di quelli della tua terra." },
+    { "id": "mezzuomo", "name": "Mezzuomo", "bonusAttribute": "COS", "bonusValue": 1, "moveDescription": "Quando ti accampi e guarisci guarisci +1d6 PF aggiuntivi." },
+    { "id": "umano",    "name": "Umano",    "bonusAttribute": "SAG", "bonusValue": 1, "moveDescription": "Le Grandi Foreste sono sempre la tua Terra, in qualsiasi posto tu ti trovi." }
+  ],
+  "alignments": [
+    { "id": "caotico", "name": "Caotico", "description": "Distruggi un simbolo della civiltà." },
+    { "id": "buono",   "name": "Buono",   "description": "Aiuta qualcosa o qualcuno a crescere." },
+    { "id": "neutrale","name": "Neutrale","description": "Elimina una minaccia innaturale." }
+  ],
+  "appearanceOptions": {
+    "eyes":    ["Occhi saggi", "Occhi selvaggi", "Occhi incalzanti"],
+    "head":    ["Cappuccio di pelliccia", "Capelli disordinati", "Trecce con foglie"],
+    "clothes": ["Vesti cerimoniali", "Comode vesti di cuoio", "Pelli segnate dal tempo"],
+    "body":    ["Corpo robusto", "Corpo snello", "Corpo agile"]
+  },
+  "originTrait": "Nato dalla Terra — sei intimamente legato a un tipo di terreno (la tua Terra). In essa gli spiriti ti conoscono come uno di loro.",
+  "classBonus": { "attribute": "SAG", "value": 2 },
+  "startingHp": 6,
+  "damageDie": "D6",
+  "startingArmor": 1,
+  "startingLoad": 6,
+  "classMoves": [
+    { "name": "Figlio della Terra",   "isStarting": true,  "description": "Quando sei nella tua Terra (il tipo di ambiente con cui sei intimamente legato), non hai bisogno di consumare razioni. Prendi anche +1 a Comunione con la Natura." },
+    { "name": "Trasformarsi",         "isStarting": true,  "description": "Quando ti trasformi in un animale della tua terra, tira+Sag. Con un 10+ scegli due caratteristiche della bestia. Con un 7–9 sceglila il GM. Rimani finché non vuoi tornare o vieni gravemente ferito." },
+    { "name": "Comunione con la Natura","isStarting": true,"description": "Quando prendi un momento per meditare con la natura circostante, tira+Sag. Con un 10+ il GM ti risponderà a due domande sinceramente. Con un 7–9 solo a una." },
+    { "name": "Saggezza Primordiale", "isStarting": false, "description": "Quando usi Comunione con la Natura, prendi +1 a tutte le risposte del GM per il resto della scena." },
+    { "name": "Istinto di Caccia",    "isStarting": false, "description": "Quando combatti in forma di bestia, infliggi +1d4 danni." },
+    { "name": "Forma di Predatore",   "isStarting": false, "description": "Puoi trasformarti in un predatore pericoloso (leone, lupo gigante, ecc.) dalla tua terra." },
+    { "name": "Parlare con le Bestie","isStarting": false, "description": "Anche fuori dalla tua terra, puoi capire e farti capire da qualsiasi animale." },
+    { "name": "Spirito della Foresta","isStarting": false, "description": "Quando sei nella tua terra e chiami gli spiriti in aiuto, tira+Sag. Con un 10+ un gruppo di animali o spiriti aiutano per un momento. Con un 7–9 arrivano ma vogliono qualcosa in cambio." }
+  ],
+  "gearChoices": [
+    [
+      { "name": "Bastone (a due mani, medio)", "weight": 1 },
+      { "name": "Ascia di pietra (media) + pugnale (corto)", "weight": 2 }
+    ],
+    [
+      { "name": "Pelliccia sacra (armatura 1)", "weight": 1 },
+      { "name": "3 sacchetti di erbe curative (1d6 guarigione ciascuno)", "weight": 0 }
+    ],
+    [
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 },
+      { "name": "Attrezzi da avventuriero (5 utilizzi)", "weight": 1 }
+    ]
+  ],
+  "bonds": [
+    "___ odora più di preda che di cacciatore.",
+    "Gli spiriti mi hanno parlato di un grande pericolo che perseguita ___.",
+    "Ho mostrato a ___ un rito segreto della mia Terra.",
+    "___ ha assaggiato il mio sangue e io il suo. Siamo legati."
+  ],
+  "defaultStats": {
+    "id": "",
+    "name": "Ethanwe il Druido",
+    "level": 1,
+    "class": "Il Druido",
+    "experience": 0,
+    "avatar": "/images/classes/ethanwe-elfo-druido.jpeg",
+    "attributes": { "FOR": 9, "DES": 12, "COS": 13, "INT": 8, "SAG": 16, "CAR": 15 },
+    "vitality": { "max": 19, "current": 19 },
+    "armor": 1,
+    "damageDie": "D6",
+    "race": "ELFO",
+    "alignment": "NEUTRALE",
+    "alignmentDesc": "Elimina una minaccia innaturale.",
+    "bonds": [
+      { "companion": "", "statement": "ho mostrato loro un rito segreto della mia Terra." },
+      { "companion": "", "statement": "odora più di preda che di cacciatore." }
+    ],
+    "gear": [
+      { "name": "Pelliccia sacra (armatura 1)", "weight": 1 },
+      { "name": "Bastone (a due mani, medio)", "weight": 1 },
+      { "name": "3 sacchetti di erbe curative", "weight": 0 },
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 }
+    ],
+    "maxWeight": 6,
+    "locked": false,
+    "preparedSpellNames": []
+  }
+}

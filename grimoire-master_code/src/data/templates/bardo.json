@@ -1,0 +1,90 @@
+{
+  "id": "t_bard",
+  "name": "The Bard",
+  "class": "Il Bardo",
+  "type": "Arcane-Martial Class",
+  "description": "Narratore di leggende e tessitore di incantesimi. La sua voce è un'arma e la sua musica modifica la realtà.",
+  "icon": "music_note",
+  "avatar": "/images/classes/cassandra-canto-del-vento-bardessa.jpeg",
+  "races": [
+    { "id": "elfo",  "name": "Elfo",  "bonusAttribute": "INT", "bonusValue": 1, "moveDescription": "Quando entri in un luogo importante (un dungeon, una città, un palazzo) puoi chiedere al GM un dettaglio storico interessante su di esso." },
+    { "id": "umano", "name": "Umano", "bonusAttribute": "CAR", "bonusValue": 1, "moveDescription": "Quando entri in un insediamento civilizzato, sei accolto e rispettato come un ospite di riguardo." }
+  ],
+  "alignments": [
+    { "id": "buono",   "name": "Buono",   "description": "Esegui un'esibizione che aiuta direttamente qualcun altro." },
+    { "id": "neutrale","name": "Neutrale","description": "Evita un conflitto o calma una situazione tesa con le parole." },
+    { "id": "caotico", "name": "Caotico", "description": "Sprona qualcuno a un'azione importante che non aveva pianificato." }
+  ],
+  "appearanceOptions": {
+    "eyes":    ["Occhi sapienti", "Occhi ardenti", "Occhi gioiosi"],
+    "head":    ["Capelli eleganti", "Capelli selvaggi", "Cappello alla moda"],
+    "clothes": ["Abiti eleganti", "Abiti da viaggio", "Abiti poveri ma colorati"],
+    "body":    ["Corpo allenato", "Corpo ben nutrito", "Corpo esile"]
+  },
+  "originTrait": "Arte Arcana — la tua musica tesse incantesimi nel mondo. Conosci tre canzoni: tre magie dal libro del Mago di 1° livello.",
+  "classBonus": { "attribute": "CAR", "value": 2 },
+  "startingHp": 6,
+  "damageDie": "D6",
+  "startingArmor": 0,
+  "startingLoad": 9,
+  "classMoves": [
+    { "name": "Arte Arcana",      "isStarting": true,  "description": "Quando suoni la tua musica e lanci un incantesimo dalla tua lista, usa le stesse regole del Mago per Lanciare Incantesimi (tira+Car). Conosci tre canzoni scelte dal libro degli incantesimi del Mago." },
+    { "name": "Esibizione",       "isStarting": true,  "description": "Quando ti esibisci (canto, storia, commedia, musica) per un pubblico, tira+Car. Con un 10+ scegli due: l'atmosfera cambia esattamente come vuoi / i presenti ti prestano molta attenzione / qualcuno ti offre doni. Con un 7–9 scegli uno." },
+    { "name": "Conoscenza Oscura","isStarting": true,  "description": "Quando dichiari conoscenze riguardo a mostri, maledizioni o luoghi oscuri, tira+Int. Con un 10+ il GM ti dice qualcosa di utile e preciso. Con un 7–9 il GM ti dice qualcosa, ma non tutto." },
+    { "name": "Aiuto Ispirante",  "isStarting": false, "description": "Quando aiuti qualcuno che ha già tirato e ottenuto un successo, il tuo aiuto gli da +1d4 al risultato al posto del solito +1." },
+    { "name": "Canto di Battaglia","isStarting": false, "description": "Quando suoni in battaglia, tu e i tuoi alleati in ascolto prendete +1 a infliggere danni." },
+    { "name": "Parole di Potere", "isStarting": false, "description": "Quando dichiari conoscenze, puoi tirare+Car invece di +Int." },
+    { "name": "Rete di Contatti", "isStarting": false, "description": "Quando arrivi in un nuovo luogo civilizzato, tira+Car. Con un 10+ hai un contatto locale che ti deve un favore. Con un 7–9 hai un contatto ma è complicato." },
+    { "name": "Grido di Battaglia","isStarting": false, "description": "Quando gridi in battaglia incitando i tuoi, scegli un alleato: può immediatamente fare una mossa aggiuntiva." }
+  ],
+  "gearChoices": [
+    [
+      { "name": "Spada (media)", "weight": 1 },
+      { "name": "Pugnale (corto) + frombola (vicino-lontano) + sacca di sassi", "weight": 1 }
+    ],
+    [
+      { "name": "Armatura di cuoio rigido (armatura 1)", "weight": 1 },
+      { "name": "Abiti eleganti + 2 pozioni curative", "weight": 0 }
+    ],
+    [
+      { "name": "Strumento musicale di qualità", "weight": 0 },
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 }
+    ]
+  ],
+  "bonds": [
+    "Questa non è la mia prima avventura con ___.",
+    "Ho cantato storie riguardo a ___ molto prima di averlo incontrato.",
+    "___ è spesso bersaglio dei miei scherzi.",
+    "Sto scrivendo una ballata sulle avventure di ___.",
+    "___ mi ha confidato un segreto.",
+    "___ non si fida di me, e per ottime ragioni."
+  ],
+  "defaultStats": {
+    "id": "",
+    "name": "Cassandra il Canto del Vento",
+    "level": 1,
+    "class": "Il Bardo",
+    "experience": 0,
+    "avatar": "/images/classes/cassandra-canto-del-vento-bardessa.jpeg",
+    "attributes": { "FOR": 8, "DES": 13, "COS": 9, "INT": 12, "SAG": 15, "CAR": 16 },
+    "vitality": { "max": 15, "current": 15 },
+    "armor": 0,
+    "damageDie": "D6",
+    "race": "UMANO",
+    "alignment": "NEUTRALE",
+    "alignmentDesc": "Evita un conflitto o calma una situazione tesa con le parole.",
+    "bonds": [
+      { "companion": "", "statement": "questa non è la nostra prima avventura insieme." },
+      { "companion": "", "statement": "sto scrivendo una ballata sulle sue avventure." }
+    ],
+    "gear": [
+      { "name": "Spada (media)", "weight": 1 },
+      { "name": "Armatura di cuoio rigido (armatura 1)", "weight": 1 },
+      { "name": "Strumento musicale di qualità", "weight": 0 },
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 }
+    ],
+    "maxWeight": 9,
+    "locked": false,
+    "preparedSpellNames": []
+  }
+}

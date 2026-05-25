@@ -1,0 +1,118 @@
+{
+  "id": "t_wizard",
+  "name": "The Wizard",
+  "class": "Il Mago",
+  "type": "Arcane Class",
+  "description": "Wielder of cosmic truths and reality-bending spells. Requires a sharp mind and a thirst for ancient lore.",
+  "icon": "auto_stories",
+  "avatar": "/images/classes/liliastre-maga.jpeg",
+  "races": [
+    { "id": "elfo",  "name": "Elfo",  "bonusAttribute": "INT", "bonusValue": 1, "moveDescription": "La magia per te è naturale come il respiro. Individuazione del Magico è un trucchetto." },
+    { "id": "umano", "name": "Umano", "bonusAttribute": "CAR", "bonusValue": 1, "moveDescription": "Scegli un incantesimo da Chierico. Puoi lanciarlo come se fosse un incantesimo da Mago." }
+  ],
+  "alignments": [
+    { "id": "buono",    "name": "Buono",    "description": "Usa la magia per aiutare direttamente qualcun altro." },
+    { "id": "neutrale", "name": "Neutrale", "description": "Scopri qualcosa riguardo a un mistero della magia." },
+    { "id": "malvagio", "name": "Malvagio", "description": "Usa la magia per provocare paura e terrore." }
+  ],
+  "appearanceOptions": {
+    "eyes":    ["Occhi tormentati", "Occhi acuti", "Occhi folli"],
+    "head":    ["Capelli acconciati", "Capelli selvaggi", "Cappello a punta"],
+    "clothes": ["Veste consumata", "Veste alla moda", "Veste stravagante"],
+    "body":    ["Corpo grassoccio", "Corpo raccapricciante", "Corpo esile"]
+  },
+  "originTrait": "Libro degli Incantesimi — il tuo grimorio contiene la tua mente e la tua anima. Inizi con tre magie di 1° livello e tutti i trucchetti.",
+  "classBonus": { "attribute": "INT", "value": 2 },
+  "startingHp": 4,
+  "damageDie": "D4",
+  "startingArmor": 0,
+  "startingLoad": 7,
+  "classMoves": [
+    { "name": "Libro degli Incantesimi", "isStarting": true,  "description": "Hai padroneggiato diversi incantesimi trascritti nel tuo libro (peso 1). Inizi con tre magie di 1° livello e tutti i trucchetti. A ogni livello aggiungi un nuovo incantesimo." },
+    { "name": "Preparare Incantesimi",   "isStarting": true,  "description": "Quando trascorri un'ora in quieta contemplazione del tuo libro: perdi gli incantesimi preparati e prepara nuovi incantesimi il cui livello totale non superi il tuo livello+1. Prepara tutti i trucchetti automaticamente." },
+    { "name": "Lanciare Incantesimi",    "isStarting": true,  "description": "Quando lanci un incantesimo preparato, tira+Int. Con un 10+, viene lanciato e non lo dimentichi. Con un 7–9, viene lanciato ma scegli: attiri attenzioni / prendi -1 continuato a lanciare / dimentichi l'incantesimo." },
+    { "name": "Scudo Magico",            "isStarting": true,  "description": "Quando plasmi un incantesimo continuato in scudo magico per deviare un attacco, l'incantesimo termina e sottrai il suo livello al danno ricevuto." },
+    { "name": "Rituale",                 "isStarting": true,  "description": "Quando attingi a un luogo di potere per creare un effetto magico, di' al GM cosa stai cercando. Gli effetti dei rituali sono sempre possibili ma il GM darà da 1 a 4 condizioni." },
+    { "name": "Prodigio",                "isStarting": false, "description": "Scegli un incantesimo. Lo prepari sempre come fosse di un livello più basso." },
+    { "name": "Magia Potenziata",        "isStarting": false, "description": "Quando lanci un incantesimo, con un 10+ puoi scegliere: effetti massimizzati o numero doppio di bersagli." },
+    { "name": "Protezione Arcana",       "isStarting": false, "description": "Fintanto che hai almeno un incantesimo preparato di 1° livello, hai +2 armatura." }
+  ],
+  "gearChoices": [
+    [
+      { "name": "Armatura di cuoio rigido (armatura 1)", "weight": 1 },
+      { "name": "Borsa di libri (5 utilizzi) + 3 pozioni curative", "weight": 2 }
+    ],
+    [
+      { "name": "Pugnale (corto)", "weight": 1 },
+      { "name": "Bastone (medio, a due mani)", "weight": 1 }
+    ],
+    [
+      { "name": "Pozione curativa", "weight": 0 },
+      { "name": "Tre antitossine", "weight": 0 }
+    ]
+  ],
+  "bonds": [
+    "___ ricoprirà un ruolo importante negli eventi a venire. L'ho previsto!",
+    "___ mi sta nascondendo un segreto importante.",
+    "___ è tremendamente disinformato riguardo al mondo; gli insegnerò tutto ciò che posso."
+  ],
+  "availableSpells": [
+    { "id": "trucchetto_servitore",       "name": "Servitore Inosservato",    "level": "Trucchetto", "school": "Convocazione", "description": "Evochi un costrutto invisibile con Carico 2 che trasporta oggetti che gli affidi. Non può raccogliere oggetti da solo. Si dissolve se prende danno o si allontana da te.", "continuous": false },
+    { "id": "trucchetto_luce",            "name": "Luce",                     "level": "Trucchetto", "school": "Evocazione",   "description": "Un oggetto che tocchi brilla di luce arcana come una torcia. Dura fintanto che la luce è in tua presenza.", "continuous": false },
+    { "id": "trucchetto_prestidigitazione","name": "Prestidigitazione",       "level": "Trucchetto", "school": "Trasformazione","description": "Puoi fare piccoli trucchi di magia: modifiche cosmetiche (pulizia, temperatura, colore) toccando un oggetto, oppure semplici illusioni rozze senza toccare.", "continuous": false },
+    { "id": "mago_l1_contattare_spiriti", "name": "Contattare Spiriti",       "level": "Livello 1",  "school": "Convocazione", "description": "Indica lo spirito da contattare. La creatura viene attratta vicino a te e risponde a una domanda al meglio delle proprie capacità.", "continuous": false },
+    { "id": "mago_l1_ammaliare",          "name": "Ammaliare Persona",        "level": "Livello 1",  "school": "Incantamento", "description": "La persona (non bestia o mostro) che tocchi ti considererà un amico finché non subisce danni o non viene dimostrato altrimenti.", "continuous": false },
+    { "id": "mago_l1_individuazione",     "name": "Individuazione del Magico","level": "Livello 1",  "school": "Divinazione",  "description": "Uno dei tuoi sensi è brevemente sintonizzato con la magia. Il GM ti dirà che cosa è magico in questo luogo.", "continuous": false },
+    { "id": "mago_l1_invisibilita",       "name": "Invisibilità",             "level": "Livello 1",  "school": "Illusione",    "description": "Tocca un alleato: nessuno può vederlo. Persiste finché il bersaglio attacca o dissolvi l'incantesimo. Mentre è attivo non puoi lanciarne un altro.", "continuous": true },
+    { "id": "mago_l1_telepatia",          "name": "Telepatia",                "level": "Livello 1",  "school": "Divinazione",  "description": "Formi un legame telepatico con una singola persona toccata. Puoi avere un solo legame telepatico alla volta.", "continuous": false },
+    { "id": "mago_l1_dardo",              "name": "Dardo Incantato",          "level": "Livello 1",  "school": "Evocazione",   "description": "Scagli un proiettile di pura magia dalle tue dita. Infliggi 2d4 danni al bersaglio.", "continuous": false },
+    { "id": "mago_l1_allarme",            "name": "Allarme",                  "level": "Livello 1",  "school": "Protezione",   "description": "Cammina descrivendo un cerchio mentre lanci. Fino a quando non prepari incantesimi, la magia ti avverte se una creatura attraversa quel cerchio.", "continuous": false },
+    { "id": "mago_l3_dissolvi",           "name": "Dissolvi Magie",           "level": "Livello 3",  "school": "Protezione",   "description": "Scegli un incantesimo o effetto magico in tua presenza: lo fa a pezzi. Gli incantesimi minori terminano, le magie più potenti sono ridotte.", "continuous": false },
+    { "id": "mago_l3_visioni",            "name": "Visioni Attraverso il Tempo","level": "Livello 3","school": "Divinazione",  "description": "Osserva una superficie riflettente per avere visioni dal passato. Il GM rivela un Oscuro Presagio: un evento nefasto che accadrà sicuramente se non intervieni.", "continuous": false },
+    { "id": "mago_l3_palla_fuoco",        "name": "Palla di Fuoco",           "level": "Livello 3",  "school": "Evocazione",   "description": "Evochi una sfera di fiamme che avvolge il bersaglio e chi gli è vicino, infliggendo 2d6 danni che ignorano l'armatura.", "continuous": false },
+    { "id": "mago_l3_mimesi",             "name": "Mimesi",                   "level": "Livello 3",  "school": "Trasformazione","description": "Prendi la forma di qualcuno che stai toccando. Persiste finché prendi danno o torni alla tua forma normale. Mentre è attivo non puoi usare le mosse da Mago.", "continuous": true },
+    { "id": "mago_l3_specchio",           "name": "Immagine Speculare",       "level": "Livello 3",  "school": "Illusione",    "description": "Crei un'illusione di te stesso. Quando vieni attaccato, tira 1d6: con 4-6 l'illusione viene colpita al tuo posto e si dissolve.", "continuous": false },
+    { "id": "mago_l3_sonno",              "name": "Sonno",                    "level": "Livello 3",  "school": "Incantamento", "description": "1d4 nemici che puoi vedere si addormentano. Solo creature in grado di dormire subiscono l'effetto.", "continuous": false },
+    { "id": "mago_l5_gabbia",             "name": "Gabbia",                   "level": "Livello 5",  "school": "Evocazione",   "description": "Il bersaglio viene racchiuso in una gabbia di forza magica. Niente entra o esce. La creatura intrappolata sente i tuoi pensieri.", "continuous": true },
+    { "id": "mago_l5_contatto_piani",     "name": "Contattare Altri Piani",   "level": "Livello 5",  "school": "Divinazione",  "description": "Invii una richiesta verso un altro piano. Apri una comunicazione bidirezionale con la creatura specificata.", "continuous": false },
+    { "id": "mago_l5_metamorfosi",        "name": "Metamorfosi",              "level": "Livello 5",  "school": "Incantamento", "description": "Il tuo tocco trasforma completamente la forma di una creatura. Il GM sceglierà una o più condizioni tra: forma instabile, mente alterata, debolezza o beneficio imprevisto.", "continuous": false },
+    { "id": "mago_l5_evocare",            "name": "Evocare Mostri",           "level": "Livello 5",  "school": "Convocazione", "description": "Un mostro appare e ti aiuta. Considera come tuo personaggio con solo mosse basilari. Ha +1 a tutto, 1 PF, usa il tuo dado danno. Ottiene 1d6 tratti a tua scelta.", "continuous": true },
+    { "id": "mago_l7_dominare",           "name": "Dominare",                 "level": "Livello 7",  "school": "Incantamento", "description": "Spingi la tua mente in quella di qualcun altro. Ottieni 1d4 presa. Spendi 1 presa per: far dire parole / darti qualcosa / attaccare un nemico / rispondere sinceramente. Non puoi lanciare incantesimi mentre è attivo.", "continuous": true },
+    { "id": "mago_l7_innesco",            "name": "Innesco",                  "level": "Livello 7",  "school": "Evocazione",   "description": "Scegli un incantesimo di 5° livello o inferiore e una condizione d'innesco. L'incantesimo viene trattenuto finché non decidi di lanciarlo o la condizione si verifica.", "continuous": false },
+    { "id": "mago_l7_visione_vero",       "name": "Visione del Vero",         "level": "Livello 7",  "school": "Divinazione",  "description": "Vedi tutte le cose secondo la loro vera natura. Persiste finché non dici una menzogna o dissolvi l'incantesimo. Prendi -1 a lanciare incantesimi.", "continuous": true },
+    { "id": "mago_l7_ombre",              "name": "Camminare nelle Ombre",    "level": "Livello 7",  "school": "Illusione",    "description": "Le ombre su cui lanci diventano un portale. Nomina un luogo (in parole ≤ tuo livello). Attraversarlo trasporta te e gli alleati lì. Usabile una volta per alleato.", "continuous": false },
+    { "id": "mago_l7_nube",               "name": "Nube Mortale",             "level": "Livello 7",  "school": "Convocazione", "description": "Una nuvola dai Neri Cancelli si sparge nell'area. Le creature che subiscono danni nell'area subiscono +1d6 danni che ignorano l'armatura. Persiste finché puoi vedere l'area.", "continuous": true },
+    { "id": "mago_l9_antipatia",          "name": "Antipatia",                "level": "Livello 9",  "school": "Incantamento", "description": "Scegli un bersaglio e un tipo di creatura/allineamento: quelle creature fuggono immediatamente dalla vista del bersaglio. Prendi -1 a lanciare incantesimi.", "continuous": true },
+    { "id": "mago_l9_presagio",           "name": "Presagio",                 "level": "Livello 9",  "school": "Divinazione",  "description": "Descrivi un evento. Il GM ti dirà quando accadrà, ovunque e in qualunque momento futuro. Se vuoi, vedi il luogo dell'evento come se fossi lì.", "continuous": false },
+    { "id": "mago_l9_rifugio",            "name": "Rifugio",                  "level": "Livello 9",  "school": "Evocazione",   "description": "Crei una struttura di pura energia magica (da castello a capanna). Immune a tutti i danni non magici. Perdura finché non ti allontani.", "continuous": true },
+    { "id": "mago_l9_gemma",              "name": "Gemma dell'Anima",         "level": "Livello 9",  "school": "Trasformazione","description": "Intrappoli l'anima di una creatura morente in una gemma. La creatura è consapevole. Tutte le mosse contro di essa prendono +1. Puoi liberarla quando vuoi.", "continuous": false },
+    { "id": "mago_l9_evocazione",         "name": "Evocazione Infallibile",   "level": "Livello 9",  "school": "Convocazione", "description": "Una creatura viene teletrasportata al tuo cospetto. Nomina una creatura o fornisci una descrizione di tipo: appare innanzi a te.", "continuous": false }
+  ],
+  "defaultStats": {
+    "id": "",
+    "name": "Lilliastre la Maga",
+    "level": 1,
+    "class": "Il Mago",
+    "experience": 0,
+    "avatar": "/images/classes/liliastre-maga.jpeg",
+    "attributes": { "FOR": 8, "DES": 12, "COS": 9, "INT": 16, "SAG": 13, "CAR": 15 },
+    "vitality": { "max": 13, "current": 13 },
+    "armor": 0,
+    "damageDie": "D4",
+    "race": "UMANO",
+    "alignment": "NEUTRALE",
+    "alignmentDesc": "Scopri qualcosa riguardo a un mistero della magia.",
+    "bonds": [
+      { "companion": "", "statement": "ricoprirà un ruolo importante negli eventi a venire. L'ho previsto!" },
+      { "companion": "", "statement": "mi sta nascondendo un segreto importante." }
+    ],
+    "gear": [
+      { "name": "Libro degli Incantesimi", "weight": 1 },
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 },
+      { "name": "Pugnale (corto)", "weight": 1 }
+    ],
+    "maxWeight": 7,
+    "locked": false,
+    "preparedSpellNames": ["Luce", "Dardo Incantato", "Ammaliare Persona"]
+  }
+}

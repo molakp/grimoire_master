@@ -1,0 +1,84 @@
+{
+  "id": "t_paladin",
+  "name": "The Paladin",
+  "class": "Il Paladino",
+  "type": "Divine Class",
+  "description": "Faro di luce santa nell'oscurità. Vincolato da sacri voti e benedetto dall'intervento divino.",
+  "icon": "shield_with_heart",
+  "avatar": "/images/classes/adrian-paladino.jpeg",
+  "races": [
+    { "id": "umano", "name": "Umano", "bonusAttribute": "CAR", "bonusValue": 1, "moveDescription": "Sei umano e ottieni Corazzato: ignori l'etichetta ingombrante sull'armatura che indossi." }
+  ],
+  "alignments": [
+    { "id": "legale", "name": "Legale", "description": "Nega la pietà a un miscredente." },
+    { "id": "buono",  "name": "Buono",  "description": "Mettiti in pericolo per proteggere qualcuno più debole di te." }
+  ],
+  "appearanceOptions": {
+    "eyes":    ["Occhi gentili", "Occhi ardenti", "Occhi luminosi"],
+    "head":    ["Elmo", "Capelli acconciati", "Calvo"],
+    "clothes": ["Armatura sacra", "Cotta di maglia lucidata", "Tabardo con simbolo divino"],
+    "body":    ["Corpo atletico", "Corpo massiccio", "Corpo esile"]
+  },
+  "originTrait": "Io Sono la Legge — quando preghi in cerca di consiglio e chiedi «Cosa qui è malvagio?» il GM te lo dirà onestamente.",
+  "classBonus": { "attribute": "CAR", "value": 2 },
+  "startingHp": 10,
+  "damageDie": "D10",
+  "startingArmor": 2,
+  "startingLoad": 12,
+  "classMoves": [
+    { "name": "Imposizione delle Mani", "isStarting": true,  "description": "Quando tocchi qualcuno pelle contro pelle e preghi per la sua salute, tira+Car. Con un 10+ guarisci 1d8 danni o rimuovi una malattia. Con un 7–9 lo guarisci ma i danni o la malattia sono trasferiti a te." },
+    { "name": "Corazzato",              "isStarting": true,  "description": "Ignori l'etichetta ingombrante sull'armatura che indossi." },
+    { "name": "Io Sono la Legge",       "isStarting": true,  "description": "Quando dai un ordine a un PNG basandoti sulla tua autorità divina, tira+Car. Con un 7+ il PNG sceglie: fare ciò che dici / allontanarsi / attaccarti. Con un 10+ prendi anche +1 al prossimo tiro contro di lui." },
+    { "name": "Missione",               "isStarting": true,  "description": "Quando ti consacri a una missione con preghiera e purificazione, dichiara uno scopo (uccidere X / difendere X / scoprire la verità su X). Scegli fino a due benedizioni divine e mantieni i voti corrispondenti." },
+    { "name": "Favore Divino",          "isStarting": false, "description": "Scegli una divinità. Ottieni le mosse da Chierico comunione e lanciare incantesimi. Considerati un Chierico di livello 1 per gli incantesimi. A ogni livello aumenta il livello efficace da Chierico di 1." },
+    { "name": "Sempre Avanti!",         "isStarting": false, "description": "Mentre persegui la tua missione infliggi +1d4 danni." },
+    { "name": "Carica!",                "isStarting": false, "description": "Quando carichi davanti a tutti gettandoti nella mischia, coloro che ti seguono prendono +1 al prossimo tiro." },
+    { "name": "Difensore Devoto",       "isStarting": false, "description": "Quando difendi hai sempre +1 presa, anche con un 6−." },
+    { "name": "Perfetto Cavaliere",     "isStarting": false, "description": "Quando vai in missione scegli tre benedizioni invece di due." }
+  ],
+  "gearChoices": [
+    [
+      { "name": "Alabarda (lunga, +1 danni, a due mani)", "weight": 2 },
+      { "name": "Spada lunga (media, +1 danni) + scudo (+1 armatura)", "weight": 3 }
+    ],
+    [
+      { "name": "Attrezzi da avventuriero", "weight": 1 },
+      { "name": "Razioni da dungeon (5 utilizzi) + pozione curativa", "weight": 2 }
+    ]
+  ],
+  "bonds": [
+    "Il comportamento deviato di ___ mette in pericolo la sua stessa anima!",
+    "___ ha combattuto al mio fianco e posso fidarmi di lui completamente.",
+    "Rispetto le credenze di ___ ma spero che un giorno si convertirà.",
+    "___ è un'anima nobile, ho molto da imparare da lui."
+  ],
+  "defaultStats": {
+    "id": "",
+    "name": "Adrian il Paladino",
+    "level": 1,
+    "class": "Il Paladino",
+    "experience": 0,
+    "avatar": "/images/classes/adrian-paladino.jpeg",
+    "attributes": { "FOR": 15, "DES": 9, "COS": 13, "INT": 8, "SAG": 12, "CAR": 16 },
+    "vitality": { "max": 23, "current": 23 },
+    "armor": 2,
+    "damageDie": "D10",
+    "race": "UMANO",
+    "alignment": "BUONO",
+    "alignmentDesc": "Mettiti in pericolo per proteggere qualcuno più debole di te.",
+    "bonds": [
+      { "companion": "", "statement": "ha combattuto al mio fianco e posso fidarmi di lui completamente." },
+      { "companion": "", "statement": "è un'anima nobile, ho molto da imparare da lui." }
+    ],
+    "gear": [
+      { "name": "Armatura a scaglie (armatura 2)", "weight": 3 },
+      { "name": "Spada lunga (media, +1 danni)", "weight": 1 },
+      { "name": "Scudo (+1 armatura)", "weight": 2 },
+      { "name": "Simbolo della fede", "weight": 0 },
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 }
+    ],
+    "maxWeight": 12,
+    "locked": false,
+    "preparedSpellNames": []
+  }
+}

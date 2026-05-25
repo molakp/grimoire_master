@@ -1,0 +1,125 @@
+{
+  "id": "t_cleric",
+  "name": "The Cleric",
+  "class": "Il Chierico",
+  "type": "Divine Class",
+  "description": "Servo devoto degli dei, canalizza potere divino per guarire gli alleati e punire i nemici della fede.",
+  "icon": "brightness_high",
+  "avatar": "/images/classes/hawthorn-chierico.jpeg",
+  "races": [
+    { "id": "nano",  "name": "Nano",  "bonusAttribute": "COS", "bonusValue": 1, "moveDescription": "Hai una connessione con la pietra. Quando usi Voce dei Taciturni con la pietra ottieni automaticamente un 10+." },
+    { "id": "umano", "name": "Umano", "bonusAttribute": "SAG", "bonusValue": 1, "moveDescription": "Scegli un incantesimo da Mago. Puoi lanciarlo come se fosse un incantesimo da Chierico." }
+  ],
+  "alignments": [
+    { "id": "buono",    "name": "Buono",    "description": "Mettiti in pericolo per guarire qualcuno." },
+    { "id": "legale",   "name": "Legale",   "description": "Mettiti in pericolo per difendere i precetti della tua chiesa o divinità." },
+    { "id": "malvagio", "name": "Malvagio", "description": "Fai del male a qualcuno per dimostrare la superiorità della tua divinità." }
+  ],
+  "appearanceOptions": {
+    "eyes":    ["Occhi gentili", "Occhi acuti", "Occhi tristi"],
+    "head":    ["Tonsura", "Capelli stravaganti", "Calvo"],
+    "clothes": ["Vesti fluenti", "Tonaca", "Abiti comuni"],
+    "body":    ["Corpo esile", "Corpo tozzo", "Corpo flaccido"]
+  },
+  "originTrait": "Servitore Divino — il tuo dio risponde alle preghiere. Scegli una divinità, un dominio e la sua mossa divina speciale.",
+  "classBonus": { "attribute": "SAG", "value": 2 },
+  "startingHp": 8,
+  "damageDie": "D6",
+  "startingArmor": 1,
+  "startingLoad": 10,
+  "classMoves": [
+    { "name": "Devozione",          "isStarting": true,  "description": "Scegli una divinità e un dominio. Indica la missione o i precetti della tua divinità." },
+    { "name": "Comunione",          "isStarting": true,  "description": "Quando trascorri non interrotto un quarto d'ora in preghiera al tuo dio, perdi gli incantesimi preparati e prepara nuovi incantesimi il cui livello totale non superi il tuo livello+1. Tutte le orazioni sono sempre preparate." },
+    { "name": "Lanciare Incantesimi","isStarting": true,  "description": "Quando lanci un incantesimo preparato, tira+Sag. Con un 10+, viene lanciato e non lo dimentichi. Con un 7–9, viene lanciato ma scegli uno tra: attiri attenzioni / prendi -1 continuato a lanciare / dimentichi l'incantesimo." },
+    { "name": "Trasformare Non Morti","isStarting": true, "description": "Quando mostri il tuo simbolo sacro a un non morto, tira+Sag. Con un 7+, contiene i non morti fino a 2*livello PF che indietreggiano. Con un 10+ scegli uno di loro: distruggerlo." },
+    { "name": "Protezione Armata",   "isStarting": false, "description": "Quando indossi armatura sei a tuo agio e ti muovi normalmente." },
+    { "name": "Punizione Divina",    "isStarting": false, "description": "Quando hai un'arma sacra e attacchi, infliggi +1d4 danni sacri che ignorano l'armatura." },
+    { "name": "Cura di Massa",       "isStarting": false, "description": "Quando usi Cura Ferite Leggere, puoi dividerla tra quanti vuoi in mischia, con un totale di 1d8 PF." },
+    { "name": "Iniziato",            "isStarting": false, "description": "Prendi un incantesimo di un livello superiore al tuo massimo. Puoi prepararlo come se fosse del tuo livello massimo." },
+    { "name": "Vangelo della Guarigione","isStarting": false, "description": "Quando guarisci qualcuno, guarisce +1d8 PF aggiuntivi." }
+  ],
+  "gearChoices": [
+    [
+      { "name": "Mazza (media)", "weight": 1 },
+      { "name": "Martello da guerra (media)", "weight": 1 }
+    ],
+    [
+      { "name": "Scudo (+1 armatura)", "weight": 2 },
+      { "name": "Armatura scalare (armatura 2)", "weight": 3 }
+    ],
+    [
+      { "name": "3 pozioni curative", "weight": 0 },
+      { "name": "Simbolo sacro + razioni da dungeon (5 utilizzi)", "weight": 1 }
+    ]
+  ],
+  "bonds": [
+    "___ ha insultato la mia divinità: non mi fido di lui.",
+    "___ è una persona buona e di fede: mi fido di lui implicitamente.",
+    "___ è in costante pericolo, lo terrò al sicuro.",
+    "Mi sto impegnando per convertire ___ alla mia fede."
+  ],
+  "availableSpells": [
+    { "id": "chier_orazione_luce",       "name": "Luce",               "level": "Orazione",   "school": "Evocazione",   "description": "Un oggetto che tocchi brilla di luce divina come una torcia. Dura fintanto che la luce è in tua presenza.", "continuous": false },
+    { "id": "chier_orazione_purificare", "name": "Purificare",         "level": "Orazione",   "school": "Sacro",        "description": "Il cibo o l'acqua che tieni in mano viene consacrata ed è purificata da qualunque deterioramento.", "continuous": false },
+    { "id": "chier_orazione_guida",      "name": "Guida",              "level": "Orazione",   "school": "Divinazione",  "description": "Il simbolo della tua divinità appare e ti indica la direzione o l'azione che la divinità vorrebbe seguissi.", "continuous": false },
+    { "id": "chier_l1_benedizione",      "name": "Benedizione",        "level": "Livello 1",  "school": "Incantamento", "description": "La tua divinità sorride a un bersaglio in combattimento. Prende +1 continuato fintanto che la battaglia perdura. Mentre è attivo prendi -1 a lanciare incantesimi.", "continuous": true },
+    { "id": "chier_l1_arma_magica",      "name": "Arma Magica",        "level": "Livello 1",  "school": "Sacro",        "description": "L'arma in mano infligge +1d4 danni finché non dissolvi l'incantesimo. Mentre è attivo prendi -1 a lanciare incantesimi.", "continuous": true },
+    { "id": "chier_l1_cura_leggere",     "name": "Cura Ferite Leggere","level": "Livello 1",  "school": "Guarigione",   "description": "Al tuo tocco le ferite si rimarginano. Guarisci 1d8 danni a un alleato.", "continuous": false },
+    { "id": "chier_l1_santuario",        "name": "Santuario",          "level": "Livello 1",  "school": "Protezione",   "description": "Consacri un'area alla tua divinità. Vieni avvertito di azioni maligni nell'area. Chiunque venga guarito qui guarisce +1d4 PF.", "continuous": false },
+    { "id": "chier_l1_ind_allineamento", "name": "Individuare Allineamento","level": "Livello 1","school": "Divinazione","description": "Scegli un allineamento. Diventi capace di individuarlo con uno dei tuoi sensi.", "continuous": false },
+    { "id": "chier_l1_incuti_paura",     "name": "Incuti Paura",       "level": "Livello 1",  "school": "Incantamento", "description": "Un bersaglio intelligente è spaventato da un oggetto vicino. Mentre è attivo prendi -1 a lanciare incantesimi.", "continuous": true },
+    { "id": "chier_l1_parla_morti",      "name": "Parlare con i Morti","level": "Livello 1",  "school": "Necromanzia",  "description": "Parli con un cadavere che risponde alle prime tre domande al meglio della sua conoscenza in vita e in morte.", "continuous": false },
+    { "id": "chier_l3_animare_morti",    "name": "Animare Morti",      "level": "Livello 3",  "school": "Necromanzia",  "description": "Crei uno zombie che segue i tuoi ordini. Ha +1 a tutto, 1 PF, usa il tuo dado danno, ottiene 1d4 caratteristiche. Mentre è attivo prendi -1 a lanciare incantesimi.", "continuous": true },
+    { "id": "chier_l3_resurrezione",     "name": "Resurrezione",       "level": "Livello 3",  "school": "Sacro",        "description": "Resusciti un corpo la cui anima non ha ancora lasciato il mondo. È sempre possibile ma richiede condizioni dal GM.", "continuous": false },
+    { "id": "chier_l3_cura_moderate",    "name": "Cura Ferite Moderate","level": "Livello 3", "school": "Guarigione",   "description": "Guarisci 2d8 danni a un alleato.", "continuous": false },
+    { "id": "chier_l3_bloccare",         "name": "Bloccare Persona",   "level": "Livello 3",  "school": "Incantamento", "description": "Una creatura non può agire se non parlando, finché non lanci un altro incantesimo o ti allontani. Termina se subisce danno.", "continuous": false },
+    { "id": "chier_l3_oscurita",         "name": "Oscurità",           "level": "Livello 3",  "school": "Illusione",    "description": "Un'area si riempie di oscurità sovrannaturale. Mentre è attivo prendi -1 a lanciare incantesimi.", "continuous": true },
+    { "id": "chier_l5_rivelazione",      "name": "Rivelazione",        "level": "Livello 5",  "school": "Divinazione",  "description": "La tua divinità ti rivela la vera natura della situazione attuale. Prendi +1 al prossimo tiro se agisci su queste informazioni.", "continuous": false },
+    { "id": "chier_l5_cura_critiche",    "name": "Cura Ferite Critiche","level": "Livello 5", "school": "Guarigione",   "description": "Guarisci 3d8 danni a un alleato.", "continuous": false },
+    { "id": "chier_l5_divinazione",      "name": "Divinazione",        "level": "Livello 5",  "school": "Divinazione",  "description": "Indica un nome. La tua divinità ti concede una visione del bersaglio, chiara come se fossi lì presente.", "continuous": false },
+    { "id": "chier_l5_contagio",         "name": "Contagio",           "level": "Livello 5",  "school": "Necromanzia",  "description": "Il bersaglio soffre di una malattia a tua scelta. Mentre è attivo prendi -1 a lanciare incantesimi.", "continuous": true },
+    { "id": "chier_l5_voce_taciturni",   "name": "Voce dei Taciturni", "level": "Livello 5",  "school": "Divinazione",  "description": "Parli agli spiriti di un oggetto non vivente. Risponde a tre domande.", "continuous": false },
+    { "id": "chier_l5_visione_vero",     "name": "Visione del Vero",   "level": "Livello 5",  "school": "Divinazione",  "description": "Vedi la vera natura di tutto: penetri illusioni e cose nascoste. Mentre è attivo prendi -1 a lanciare incantesimi.", "continuous": true },
+    { "id": "chier_l5_intrappolare",     "name": "Intrappolare Anime", "level": "Livello 5",  "school": "Necromanzia",  "description": "Intrappoli l'anima di una creatura morente in una gemma. Tutte le mosse contro di essa prendono +1.", "continuous": false },
+    { "id": "chier_l7_parola_ritorno",   "name": "Parola del Ritorno", "level": "Livello 7",  "school": "Traslocazione","description": "Scegli una parola. Quando la pronunci tu e i tuoi alleati siete riportati immediatamente al punto di lancio.", "continuous": false },
+    { "id": "chier_l7_separazione",      "name": "Separazione",        "level": "Livello 7",  "school": "Trasformazione","description": "Separi magicamente un'appendice dal corpo del bersaglio senza danni ma con forte dolore. Mentre è attivo prendi -1 a lanciare incantesimi.", "continuous": true },
+    { "id": "chier_l7_guarigione",       "name": "Guarigione",         "level": "Livello 7",  "school": "Guarigione",   "description": "Guarisci un alleato di un numero di danni fino al tuo massimo di PF.", "continuous": false },
+    { "id": "chier_l7_sigillo_morte",    "name": "Sigillo di Morte",   "level": "Livello 7",  "school": "Necromanzia",  "description": "Crei rune permanenti che uccideranno la creatura di cui conosci il vero nome, se le legge.", "continuous": false },
+    { "id": "chier_l7_ferire",           "name": "Ferire",             "level": "Livello 7",  "school": "Sacro",        "description": "Tocca un nemico: 2d8 danni a lui e 1d6 a te. Questi danni ignorano l'armatura.", "continuous": false },
+    { "id": "chier_l7_ctrl_tempo",       "name": "Controllare il Tempo","level": "Livello 7", "school": "Evocazione",   "description": "Prega per il tempo che desideri. Entro un giorno il tuo dio risponderà e il tempo cambierà per qualche giorno.", "continuous": false },
+    { "id": "chier_l9_tempesta",         "name": "Tempesta della Vendetta","level": "Livello 9","school": "Evocazione",  "description": "La tua divinità causa un fenomeno atmosferico innaturale a tua scelta: piogge di sangue, venti devastanti, etc.", "continuous": false },
+    { "id": "chier_l9_consumare",        "name": "Consumare Non Morti","level": "Livello 9",  "school": "Necromanzia",  "description": "Distruggi un non morto non senziente al tuo tocco e assorbi la sua energia per guarire te o un alleato di PF pari ai PF della creatura.", "continuous": false },
+    { "id": "chier_l9_riparare",         "name": "Riparare",           "level": "Livello 9",  "school": "Sacro",        "description": "Annulli tutte le conseguenze di un evento nel passato del bersaglio: danni, malattie, veleni ed effetti magici.", "continuous": false },
+    { "id": "chier_l9_pestilenza",       "name": "Pestilenza",         "level": "Livello 9",  "school": "Necromanzia",  "description": "Un luogo abitato subisce una pestilenza legata al dominio della tua divinità. Mentre è attivo prendi -1 a lanciare incantesimi.", "continuous": true },
+    { "id": "chier_l9_presenza_divina",  "name": "Presenza Divina",    "level": "Livello 9",  "school": "Sacro",        "description": "Ogni creatura deve chiederti permesso per avvicinarsi o allontanarsi. Le creature non autorizzate al tuo cospetto subiscono +1d10 danni ogni volta. Mentre è attivo prendi -1 a lanciare incantesimi.", "continuous": true }
+  ],
+  "defaultStats": {
+    "id": "",
+    "name": "Hawthorn il Chierico",
+    "level": 1,
+    "class": "Il Chierico",
+    "experience": 0,
+    "avatar": "/images/classes/hawthorn-chierico.jpeg",
+    "attributes": { "FOR": 12, "DES": 9, "COS": 15, "INT": 8, "SAG": 16, "CAR": 13 },
+    "vitality": { "max": 23, "current": 23 },
+    "armor": 1,
+    "damageDie": "D6",
+    "race": "UMANO",
+    "alignment": "BUONO",
+    "alignmentDesc": "Mettiti in pericolo per guarire qualcuno.",
+    "bonds": [
+      { "companion": "", "statement": "è una persona buona e di fede: mi fido di lui implicitamente." },
+      { "companion": "", "statement": "è in costante pericolo, lo terrò al sicuro." }
+    ],
+    "gear": [
+      { "name": "Armatura di cuoio rigido (armatura 1)", "weight": 1 },
+      { "name": "Scudo (+1 armatura)", "weight": 2 },
+      { "name": "Mazza (media)", "weight": 1 },
+      { "name": "Simbolo sacro", "weight": 0 },
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 }
+    ],
+    "maxWeight": 10,
+    "locked": false,
+    "preparedSpellNames": ["Luce", "Purificare", "Guida", "Cura Ferite Leggere"]
+  }
+}

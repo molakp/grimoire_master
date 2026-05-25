@@ -180,6 +180,12 @@ service cloud.firestore {
       allow write: if isAdmin() && !isBanned();
     }
 
+    // 4b. BASE CLASS TEMPLATES (seeded from PDFs — public read, admin write)
+    match /templates/{templateId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // 5. PUBLIC COMMUNITY REALM CHARACTERS
     match /community_characters/{communityId} {
       allow read: if isSignedIn() && !isBanned();

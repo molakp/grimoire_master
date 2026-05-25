@@ -1,0 +1,85 @@
+{
+  "id": "t_barbarian",
+  "name": "The Barbarian",
+  "class": "Il Barbaro",
+  "type": "Primal Class",
+  "description": "Guerriero primitivo di furia indomabile. Estraneo al mondo civilizzato, devastante in battaglia.",
+  "icon": "bolt",
+  "avatar": "/images/classes/khamisi-la-sfregiatrice-barbara.jpeg",
+  "races": [
+    { "id": "estraneo", "name": "Estraneo", "bonusAttribute": "COS", "bonusValue": 1, "moveDescription": "Quando rispondi a una domanda sulla tua terra natia o sul tuo popolo, guadagni 1 PE." }
+  ],
+  "alignments": [
+    { "id": "caotico", "name": "Caotico", "description": "Ignora una convenzione del mondo civilizzato per seguire i tuoi istinti." },
+    { "id": "neutrale","name": "Neutrale","description": "Insegna a qualcuno le vie del tuo popolo." }
+  ],
+  "appearanceOptions": {
+    "eyes":    ["Occhi tormentati", "Occhi selvaggi", "Occhi velati"],
+    "head":    ["Cranio rasato", "Capelli selvaggi", "Capelli intrecciati di perline"],
+    "clothes": ["Stracci laceri", "Sete opulente rubate", "Abiti da accattone"],
+    "body":    ["Muscoli possenti", "Corpo ossuto", "Corpo agile e cicatrizzato"]
+  },
+  "originTrait": "Appetiti Erculei — la tua fame di gloria, cibo e conquista porta caos e grandi gesta. Quando intraprendi qualcosa di eroico nell'eccesso o nell'intensità ottieni +1 al tiro.",
+  "classBonus": { "attribute": "FOR", "value": 2 },
+  "startingHp": 8,
+  "damageDie": "D10",
+  "startingArmor": 0,
+  "startingLoad": 8,
+  "classMoves": [
+    { "name": "Furia",              "isStarting": true,  "description": "Quando entri in una furia di battaglia, tira+For. Con un 10+ scegli due: infliggi +1d6 danni / prendi -2 danni / spaventa un nemico costringendolo a ritrarsi. Con un 7–9 scegli uno ma anche il GM fa una mossa." },
+    { "name": "Forza Bruta",        "isStarting": true,  "description": "Quando usi forza bruta per rompere, sfondare o sollevare qualcosa, tira+For. Con un 7+ ce la fai. Con un 10+ scegli anche: non crei danni collaterali / non ti stanchi." },
+    { "name": "Estraneo",           "isStarting": true,  "description": "Sei estraneo a questo mondo. Quando incontri una stranezza culturale, tecnologia o magia che non hai mai visto, puoi chiedere al GM di spiegarti come funziona senza tirare." },
+    { "name": "Pelle di Ferro",     "isStarting": false, "description": "Hai +1 armatura in aggiunta a qualsiasi armatura tu indossi." },
+    { "name": "Carica Devastante",  "isStarting": false, "description": "Quando carichi verso un nemico urlando, tira+For. Con un 7+ lo colpisci prima che agisca. Con un 10+ il nemico è anche instabile o spaventato a tua scelta." },
+    { "name": "Istinto Primordiale","isStarting": false, "description": "Non vieni mai colto di sorpresa. Quando qualcuno ti tende un'imboscata, agisci ugualmente per primo." },
+    { "name": "Resistenza Selvaggia","isStarting": false,"description": "Ignora i primi 2 danni di ciascun attacco, anche se non indossi armatura." },
+    { "name": "Guerra-Grido",       "isStarting": false, "description": "Quando urli in battaglia, tutti i tuoi alleati prendono +1 ai danni per il resto dello scontro corrente." }
+  ],
+  "gearChoices": [
+    [
+      { "name": "Ascia a due mani (+1 danni, a due mani)", "weight": 2 },
+      { "name": "Spada lunga (media, +1 danni) + scudo (+1 armatura)", "weight": 3 }
+    ],
+    [
+      { "name": "2 asce da lancio (da lancio, vicino)", "weight": 1 },
+      { "name": "Arco primitivo (vicino) + frecce (3 munizioni)", "weight": 2 }
+    ],
+    [
+      { "name": "Razioni da viaggio (5 utilizzi)", "weight": 1 },
+      { "name": "Trofeo di un nemico sconfitto", "weight": 0 }
+    ]
+  ],
+  "bonds": [
+    "___ è gracile e sciocco, ma mi fa divertire.",
+    "Le vie di ___ sono strane e mi confondono.",
+    "___ finisce sempre nei guai: devo proteggerlo.",
+    "___ condivide la mia fame di gloria; la terra tremerà al nostro passaggio!"
+  ],
+  "defaultStats": {
+    "id": "",
+    "name": "Khamisi la Sfregiatrice",
+    "level": 1,
+    "class": "Il Barbaro",
+    "experience": 0,
+    "avatar": "/images/classes/khamisi-la-sfregiatrice-barbara.jpeg",
+    "attributes": { "FOR": 16, "DES": 12, "COS": 15, "INT": 8, "SAG": 9, "CAR": 13 },
+    "vitality": { "max": 23, "current": 23 },
+    "armor": 0,
+    "damageDie": "D10",
+    "race": "ESTRANEO",
+    "alignment": "CAOTICO",
+    "alignmentDesc": "Ignora una convenzione del mondo civilizzato per seguire i tuoi istinti.",
+    "bonds": [
+      { "companion": "", "statement": "condivide la mia fame di gloria; la terra tremerà al nostro passaggio!" },
+      { "companion": "", "statement": "finisce sempre nei guai: devo proteggerlo." }
+    ],
+    "gear": [
+      { "name": "Ascia a due mani (+1 danni)", "weight": 2 },
+      { "name": "Pelle grezza (+1 armatura)", "weight": 1 },
+      { "name": "Razioni da viaggio (5 utilizzi)", "weight": 1 }
+    ],
+    "maxWeight": 8,
+    "locked": false,
+    "preparedSpellNames": []
+  }
+}

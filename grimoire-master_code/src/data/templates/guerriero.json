@@ -1,0 +1,88 @@
+{
+  "id": "t_fighter",
+  "name": "The Fighter",
+  "class": "Il Guerriero",
+  "type": "Core Class",
+  "description": "Maestro d'acciaio e strategia. Perfetto per chi vuole guidare la carica e resistere all'impossibile.",
+  "icon": "swords",
+  "avatar": "/images/classes/stone-il-guerriero.jpeg",
+  "races": [
+    { "id": "nano",      "name": "Nano",      "bonusAttribute": "COS", "bonusValue": 1, "moveDescription": "Quando bevi insieme a qualcuno, puoi parlamentare con lui usando Cos invece di Car." },
+    { "id": "elfo",     "name": "Elfo",      "bonusAttribute": "DES", "bonusValue": 1, "moveDescription": "Scegli un tipo d'arma: puoi sempre considerare quelle armi come se avessero l'etichetta preciso." },
+    { "id": "mezzuomo", "name": "Mezzuomo",  "bonusAttribute": "DES", "bonusValue": 1, "moveDescription": "Quando sfidi il pericolo usando la tua piccola taglia a tuo vantaggio, prendi +1." },
+    { "id": "umano",    "name": "Umano",     "bonusAttribute": "FOR", "bonusValue": 1, "moveDescription": "Una volta per battaglia, puoi ritirare un singolo tiro di danni (tuo o di qualcun altro)." }
+  ],
+  "alignments": [
+    { "id": "buono",    "name": "Buono",    "description": "Difendi coloro che sono più deboli di te." },
+    { "id": "neutrale", "name": "Neutrale", "description": "Sconfiggi un degno avversario." },
+    { "id": "malvagio", "name": "Malvagio", "description": "Uccidi un nemico indifeso o arreso." }
+  ],
+  "appearanceOptions": {
+    "eyes":    ["Occhi duri", "Occhi spenti", "Occhi bramosi"],
+    "head":    ["Capelli selvaggi", "Capelli rasati", "Elmo ammaccato"],
+    "clothes": ["Pelle callosa", "Pelle abbronzata", "Pelle piena di cicatrici"],
+    "body":    ["Corpo atletico", "Corpo snello", "Corpo martoriato"]
+  },
+  "originTrait": "Corazzato — ignori l'etichetta ingombrante sull'armatura che indossi.",
+  "classBonus": { "attribute": "FOR", "value": 2 },
+  "startingHp": 10,
+  "damageDie": "D10",
+  "startingArmor": 1,
+  "startingLoad": 12,
+  "classMoves": [
+    { "name": "Piegare Sbarre, Sollevare Cancelli",   "isStarting": true,  "description": "Quando usi la forza bruta per distruggere un oggetto inanimato, tira+For. Con un 10+ scegli tre opzioni. Con un 7–9 scegline due: non ci metti molto tempo / niente di valore viene danneggiato / non fai rumore / puoi riaggiustare l'oggetto." },
+    { "name": "Corazzato",                            "isStarting": true,  "description": "Ignori l'etichetta ingombrante sull'armatura che indossi." },
+    { "name": "Arma Caratteristica",                  "isStarting": true,  "description": "La tua arma caratteristica ottiene due miglioramenti a tua scelta tra: uncini (+1 danno), affilata (+2 perforante), bilanciata (+precisa), seghettata (+1 danno), brilla, enorme (+devastante, +possente), versatile, ben costruita (-1 peso)." },
+    { "name": "Spietato",                             "isStarting": false, "description": "Quando infliggi danni, infliggi +1d4 danni." },
+    { "name": "Maestria in Armatura",                 "isStarting": false, "description": "Quando scegli di lasciare che la tua armatura assorba il grosso del danno, il danno viene annullato ma l'armatura prende -1." },
+    { "name": "Vedere Rosso",                         "isStarting": false, "description": "Quando parlamenti con qualcuno usando la minaccia di fargli del male, puoi tirare con For invece che con Car." },
+    { "name": "Pelle di Ferro",                       "isStarting": false, "description": "Ottieni +1 armatura." },
+    { "name": "Sete di Sangue",                       "isStarting": false, "description": "Sostituisce Spietato. Quando infliggi danni, infliggi +1d8 danni." },
+    { "name": "Guerriero Superiore",                  "isStarting": false, "description": "Quando tagli e spacchi con un 12+ infliggi i danni, eviti l'attacco del nemico, e lo impressioni, sgomenti o impaurisci." }
+  ],
+  "gearChoices": [
+    [
+      { "name": "Armatura di maglia (armatura 1)", "weight": 1 },
+      { "name": "Armatura di scaglie (armatura 2)", "weight": 3 }
+    ],
+    [
+      { "name": "2 Pozioni curative", "weight": 1 },
+      { "name": "Scudo (+1 armatura)", "weight": 2 },
+      { "name": "Antitossina + razioni + erbe e unguenti", "weight": 3 },
+      { "name": "22 monete", "weight": 0 }
+    ]
+  ],
+  "bonds": [
+    "___ mi deve la vita, che voglia ammetterlo o no.",
+    "Ho giurato di proteggere ___.",
+    "Mi preoccupa la capacità di ___ di sopravvivere nel dungeon.",
+    "___ è un debole, ma lo trasformerò in un duro come me."
+  ],
+  "defaultStats": {
+    "id": "",
+    "name": "Stone il Guerriero",
+    "level": 1,
+    "class": "Il Guerriero",
+    "experience": 0,
+    "avatar": "/images/classes/stone-il-guerriero.jpeg",
+    "attributes": { "FOR": 16, "DES": 12, "COS": 15, "INT": 8, "SAG": 13, "CAR": 9 },
+    "vitality": { "max": 25, "current": 25 },
+    "armor": 1,
+    "damageDie": "D10",
+    "race": "NANO",
+    "alignment": "BUONO",
+    "alignmentDesc": "Difendi coloro che sono più deboli di te.",
+    "bonds": [
+      { "companion": "", "statement": "mi deve la vita, che voglia ammetterlo o no." },
+      { "companion": "", "statement": "ho giurato di proteggere." }
+    ],
+    "gear": [
+      { "name": "Arma Caratteristica (spada, media)", "weight": 2 },
+      { "name": "Armatura di maglia (armatura 1)", "weight": 1 },
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 }
+    ],
+    "maxWeight": 12,
+    "locked": false,
+    "preparedSpellNames": []
+  }
+}

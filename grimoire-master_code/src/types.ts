@@ -60,15 +60,59 @@ export interface DiceRollLog {
   timestamp: string;
 }
 
+export type AttributeKey = 'INT' | 'FOR' | 'DES' | 'COS' | 'SAG' | 'CAR';
+
+export interface TemplateRace {
+  id: string;
+  name: string;
+  bonusAttribute?: AttributeKey;
+  bonusValue?: number;
+  moveDescription?: string; // flavour text for the racial move
+}
+
+export interface TemplateAlignment {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface TemplateAppearanceOptions {
+  eyes: string[];
+  head: string[];
+  clothes: string[];
+  body: string[];
+}
+
+export interface ClassMove {
+  name: string;
+  description: string;
+  isStarting?: boolean; // true = auto-acquired at level 1
+}
+
 export interface CharacterTemplate {
   id: string;
   name: string;
   class: string;
-  type: 'Core Class' | 'Arcane Class' | 'Shadow Class' | 'Divine Class';
+  type: 'Core Class' | 'Arcane Class' | 'Shadow Class' | 'Divine Class' | 'Primal Class' | 'Wilderness Class' | 'Arcane-Martial Class';
   description: string;
   icon: string;
   avatar: string;
   defaultStats: Character;
+
+  // Wizard config — replaces the hardcoded getTemplateConfig() in the wizard
+  races: TemplateRace[];
+  alignments: TemplateAlignment[];
+  appearanceOptions: TemplateAppearanceOptions;
+  originTrait: string;
+  classBonus: { attribute: AttributeKey; value: number };
+  startingHp: number;        // base HP before Constitution bonus
+  damageDie: string;         // e.g. 'D10'
+  startingArmor: number;
+  startingLoad: number;
+  classMoves: ClassMove[];
+  gearChoices: { options: { name: string; weight: number }[] }[];  // each group = one choice
+  bonds: string[];           // bond statement templates (companion left blank)
+  availableSpells?: Spell[]; // only for Mago and Chierico
 }
 
 export interface Mail {

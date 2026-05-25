@@ -1,0 +1,89 @@
+{
+  "id": "t_ranger",
+  "name": "The Ranger",
+  "class": "Il Ramingo",
+  "type": "Wilderness Class",
+  "description": "Esploratore delle terre selvagge, cacciatore e tracker. Accompagnato da un fedele compagno animale.",
+  "icon": "forest",
+  "avatar": "/images/classes/nora-raminga.jpeg",
+  "races": [
+    { "id": "elfo",  "name": "Elfo",  "bonusAttribute": "SAG", "bonusValue": 1, "moveDescription": "Quando intraprendi un viaggio pericoloso, effettua automaticamente un 10+ per la mossa del trailblazer." },
+    { "id": "umano", "name": "Umano", "bonusAttribute": "DES", "bonusValue": 1, "moveDescription": "Quando sei in un dungeon o in una città, non hai bisogno di consumare razioni." }
+  ],
+  "alignments": [
+    { "id": "caotico", "name": "Caotico", "description": "Libera qualcuno da catene, gabbie o altri vincoli." },
+    { "id": "buono",   "name": "Buono",   "description": "Rischia la vita per combattere una minaccia innaturale." },
+    { "id": "neutrale","name": "Neutrale","description": "Aiuta un animale o uno spirito della natura." }
+  ],
+  "appearanceOptions": {
+    "eyes":    ["Occhi selvaggi", "Occhi acuti", "Occhi da animale"],
+    "head":    ["Incappucciato", "Capelli selvaggi", "Calvo"],
+    "clothes": ["Mantello mimetico", "Vesti da viaggio", "Abiti da esplorazione"],
+    "body":    ["Corpo esile", "Corpo selvaggio", "Corpo affilato"]
+  },
+  "originTrait": "Compagno Animale — hai un legame sovrannaturale con una bestia fedele. Descrivi il tuo compagno e ottieni la mossa Compagno Animale.",
+  "classBonus": { "attribute": "SAG", "value": 2 },
+  "startingHp": 8,
+  "damageDie": "D8",
+  "startingArmor": 1,
+  "startingLoad": 11,
+  "classMoves": [
+    { "name": "Compagno Animale",         "isStarting": true,  "description": "Hai una bestia addestrata da combattimento come compagno. Descrivi il tuo compagno e scegli il suo nome. Il compagno è agile, feroce, piccolo o grande e ha 3 istinto, 3 qualità, 1 debolezza. Quando il compagno fa qualcosa di rischioso, tira+Sag." },
+    { "name": "Cacciare e Tracciare",     "isStarting": true,  "description": "Quando segui tracce fresche, tira+Sag. Con un 10+ fai tutte le domande che vuoi. Con un 7–9 scegli tre: dove è andato / quanti erano / quando è passato / si è fermato / era ferito." },
+    { "name": "Chiamata della Natura",    "isStarting": true,  "description": "Quando parli con un animale, tira+Sag. Con un 10+ l'animale capisce e ti risponde nel modo migliore possibile." },
+    { "name": "Esperto in Terreno",       "isStarting": false, "description": "Scegli un tipo di terreno: quando combatti su quel terreno, prendi +1 a tutte le mosse." },
+    { "name": "Rete di Caccia",           "isStarting": false, "description": "Quando predisponi trappole nell'ambiente, scegli due caratteristiche tra: invisibile / difficile da evadere / letale / rilevatore." },
+    { "name": "Stile di Combattimento",   "isStarting": false, "description": "Scegli uno stile. Arciere: +1d6 danni con armi a distanza. Duale: porta due armi da mischia senza penalità." },
+    { "name": "Empatia col Branco",       "isStarting": false, "description": "Puoi avere fino a tre compagni animali contemporaneamente. Tira per tutti con una singola prova." },
+    { "name": "Mente della Bestia",       "isStarting": false, "description": "Puoi vedere attraverso gli occhi del tuo compagno animale con un momento di concentrazione." }
+  ],
+  "gearChoices": [
+    [
+      { "name": "Spada corta (media) + pugnale (corto)", "weight": 2 },
+      { "name": "Ascia (media)", "weight": 1 }
+    ],
+    [
+      { "name": "Arco (vicino-lontano) + fascio di frecce (3 munizioni)", "weight": 2 },
+      { "name": "Archi corti (vicino) + fascio di frecce (3 munizioni) + ascia (media)", "weight": 3 }
+    ],
+    [
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 },
+      { "name": "Attrezzi da avventuriero (5 utilizzi)", "weight": 1 }
+    ]
+  ],
+  "bonds": [
+    "Ho fatto da guida a ___ in passato e mi deve un favore.",
+    "___ è un amico della natura, perciò sarò suo amico anch'io.",
+    "___ non ha rispetto per la natura, perciò neanch'io lo rispetto.",
+    "___ non comprende la vita nelle terre selvagge, perciò gli farò da maestro."
+  ],
+  "defaultStats": {
+    "id": "",
+    "name": "Nora la Raminga",
+    "level": 1,
+    "class": "Il Ramingo",
+    "experience": 0,
+    "avatar": "/images/classes/nora-raminga.jpeg",
+    "attributes": { "FOR": 12, "DES": 15, "COS": 13, "INT": 8, "SAG": 16, "CAR": 9 },
+    "vitality": { "max": 21, "current": 21 },
+    "armor": 1,
+    "damageDie": "D8",
+    "race": "UMANO",
+    "alignment": "BUONO",
+    "alignmentDesc": "Rischia la vita per combattere una minaccia innaturale.",
+    "bonds": [
+      { "companion": "", "statement": "è un amico della natura, perciò sarò suo amico anch'io." },
+      { "companion": "", "statement": "non comprende la vita nelle terre selvagge, perciò gli farò da maestro." }
+    ],
+    "gear": [
+      { "name": "Armatura di cuoio rigido (armatura 1)", "weight": 1 },
+      { "name": "Arco (vicino-lontano)", "weight": 1 },
+      { "name": "Fascio di frecce (3 munizioni)", "weight": 1 },
+      { "name": "Spada corta (media)", "weight": 1 },
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 }
+    ],
+    "maxWeight": 11,
+    "locked": false,
+    "preparedSpellNames": []
+  }
+}

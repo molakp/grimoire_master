@@ -1,0 +1,90 @@
+{
+  "id": "t_thief",
+  "name": "The Thief",
+  "class": "Il Ladro",
+  "type": "Shadow Class",
+  "description": "Esperto di ombre, trappole e fuga silenziosa. Indispensabile in ogni spedizione nell'ignoto.",
+  "icon": "comedy_mask",
+  "avatar": "/images/classes/felix-ladro-mezzelfo.jpeg",
+  "races": [
+    { "id": "mezzuomo", "name": "Mezzuomo", "bonusAttribute": "DES", "bonusValue": 1, "moveDescription": "Quando attacchi con un'arma a distanza, infliggi +1 danno." },
+    { "id": "umano",    "name": "Umano",    "bonusAttribute": "CAR", "bonusValue": 1, "moveDescription": "Sei un professionista. Quando discerni realtà o declami conoscenze riguardo ad attività criminali, prendi +1." }
+  ],
+  "alignments": [
+    { "id": "caotico",  "name": "Caotico",  "description": "Fiondati nel pericolo senza avere un piano." },
+    { "id": "neutrale", "name": "Neutrale", "description": "Evita di farti scoprire o infiltrati in un luogo." },
+    { "id": "malvagio", "name": "Malvagio", "description": "Scarica un pericolo o una colpa su qualcun altro." }
+  ],
+  "appearanceOptions": {
+    "eyes":    ["Occhi sfuggenti", "Occhi attenti", "Occhi criminali"],
+    "head":    ["Incappucciato", "Spettinato", "Capelli corti"],
+    "clothes": ["Abiti scuri", "Abiti eleganti", "Abiti comuni"],
+    "body":    ["Corpo esile", "Corpo tozzo", "Corpo flaccido"]
+  },
+  "originTrait": "Avvelenatore — sei esperto nella preparazione e nell'uso dei veleni. Scegli un veleno: non ti è più pericoloso e inizi con tre utilizzi.",
+  "classBonus": { "attribute": "DES", "value": 2 },
+  "startingHp": 6,
+  "damageDie": "D8",
+  "startingArmor": 1,
+  "startingLoad": 9,
+  "classMoves": [
+    { "name": "Esperto di Trappole",  "isStarting": true,  "description": "Quando spendi un momento a controllare un'area pericolosa, tira+Des. Con un 10+ prendi 3, con un 7–9 prendi 1. Spendi presa per: scoprire trappole / capire gli effetti / trovare cose nascoste." },
+    { "name": "Trucchi del Mestiere", "isStarting": true,  "description": "Quando scassini serrature, borseggi o disattivi trappole, tira+Des. Con un 10+ lo fai senza problemi. Con un 7–9 lo fai ma scegli due tra: sospetto / pericolo / costo." },
+    { "name": "Attacco Furtivo",      "isStarting": true,  "description": "Quando attacchi un nemico indifeso o sorpreso con arma da mischia, puoi scegliere di infliggere i tuoi danni o tirare+Des. Con un 10+ scegli due: non entrare in corpo a corpo / +1d6 danni / +1 al prossimo tiro / -1 armatura al nemico." },
+    { "name": "Moralità Flessibile",  "isStarting": true,  "description": "Quando qualcuno prova a individuare il tuo allineamento puoi dirgli l'allineamento che preferisci." },
+    { "name": "Avvelenatore",         "isStarting": true,  "description": "Scegli un veleno: Olio di Tagete (sonno), Ambrosia rossa (-1d4 danni continui), Rodiola dorada (tratta il prossimo come amico), Lacrime di Serpente (chi infligge danno al bersaglio tira due volte). Non ti è più pericoloso; inizi con tre utilizzi." },
+    { "name": "Colpo Basso",          "isStarting": false, "description": "Quando usi un'arma precisa o corta, infliggi +1d6 danni con l'attacco furtivo." },
+    { "name": "Io Sparo per Primo",   "isStarting": false, "description": "Non sei mai preso di sorpresa. Quando qualcuno potrebbe coglierti di sopresa, puoi invece agire per primo." },
+    { "name": "Contatti",             "isStarting": false, "description": "Quando metti in giro voce nei bassifondi criminali di qualcosa che vuoi, tira+Car. Con un 10+ qualcuno ce l'ha. Con un 7–9 accontentati di qualcosa di simile o accetta condizioni." },
+    { "name": "Via di Fuga",          "isStarting": false, "description": "Quando sei nei guai e hai bisogno di levarti di torno, indica la via di fuga e tira+Des. Con un 10+ scompari. Con un 7–9 puoi andartene ma ti costerà." }
+  ],
+  "gearChoices": [
+    [
+      { "name": "Pugnale (corto) + spada corta (media)", "weight": 2 },
+      { "name": "Spada a striscia (media, precisa)", "weight": 1 }
+    ],
+    [
+      { "name": "3 pugnali da lancio (da lancio, vicino)", "weight": 0 },
+      { "name": "Arco logoro (vicino) + fascio di frecce (3 munizioni)", "weight": 3 }
+    ],
+    [
+      { "name": "Attrezzi da avventuriero (5 utilizzi)", "weight": 1 },
+      { "name": "Pozione curativa", "weight": 0 }
+    ]
+  ],
+  "bonds": [
+    "Ho rubato qualcosa a ___.",
+    "___ mi copre le spalle quando le cose vanno male.",
+    "___ conosce dei dettagli incriminanti su di me.",
+    "Io e ___ abbiamo in ballo un affare sporco."
+  ],
+  "defaultStats": {
+    "id": "",
+    "name": "Felix il Mezzelfo",
+    "level": 1,
+    "class": "Il Ladro",
+    "experience": 0,
+    "avatar": "/images/classes/felix-ladro-mezzelfo.jpeg",
+    "attributes": { "FOR": 9, "DES": 16, "COS": 12, "INT": 13, "SAG": 15, "CAR": 8 },
+    "vitality": { "max": 18, "current": 18 },
+    "armor": 1,
+    "damageDie": "D8",
+    "race": "MEZZUOMO",
+    "alignment": "NEUTRALE",
+    "alignmentDesc": "Evita di farti scoprire o infiltrati in un luogo.",
+    "bonds": [
+      { "companion": "", "statement": "mi copre le spalle quando le cose vanno male." },
+      { "companion": "", "statement": "conosce dei dettagli incriminanti su di me." }
+    ],
+    "gear": [
+      { "name": "Armatura di cuoio rigido (armatura 1)", "weight": 1 },
+      { "name": "Pugnale (corto)", "weight": 1 },
+      { "name": "Spada corta (media)", "weight": 1 },
+      { "name": "Attrezzi da avventuriero (5 utilizzi)", "weight": 1 },
+      { "name": "Razioni da dungeon (5 utilizzi)", "weight": 1 }
+    ],
+    "maxWeight": 9,
+    "locked": false,
+    "preparedSpellNames": []
+  }
+}

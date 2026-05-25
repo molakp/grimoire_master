@@ -1,6 +1,7 @@
 import { useState, useMemo, FormEvent } from 'react';
 import { CharacterTemplate, Character, Spell, Mail, BannedUser, Admin, UserProfile } from '../types';
-import { CHARACTER_TEMPLATES, COMMUNITY_CHARACTERS } from '../data';
+import { COMMUNITY_CHARACTERS } from '../data';
+import { useTemplates } from '../hooks/useTemplates';
 import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Skull, AlertCircle } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import AdminCourt from './AdminCourt';
@@ -103,15 +104,17 @@ export default function Dashboard({
   const [publishDescriptionInput, setPublishDescriptionInput] = useState('');
 
 
+  const { templates: baseTemplates, loading: templatesLoading } = useTemplates();
+
   // Filter templates merging Firestore dynamic ones
   const filteredTemplates = useMemo(() => {
-    const combined = [...CHARACTER_TEMPLATES, ...officialTemplates];
+    const combined = [...baseTemplates, ...officialTemplates];
     return combined.filter((template) => {
       const matchSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           template.class.toLowerCase().includes(searchQuery.toLowerCase());
       return matchSearch;
     });
-  }, [searchQuery, officialTemplates]);
+  }, [searchQuery, officialTemplates, baseTemplates]);
 
   // Filter community characters merging Firestore live ones
   const filteredCommunity = useMemo(() => {
@@ -1076,7 +1079,7 @@ export default function Dashboard({
 
       {isWizardOpen && (
         <CharacterCreationWizard
-          templates={[...CHARACTER_TEMPLATES, ...officialTemplates]}
+          templates={[...baseTemplates, ...officialTemplates]}
           initialTemplateId={wizardTemplateId}
           onClose={() => {
             setIsWizardOpen(false);

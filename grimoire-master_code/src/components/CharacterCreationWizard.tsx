@@ -800,11 +800,13 @@ export default function CharacterCreationWizard({
                         const final = finalAttributes[attribute];
                         const isPrimary = attribute === config.classBonus.attribute;
                         return (
-                          <button
+                          <div
                             key={attribute}
-                            type="button"
+                            role="button"
+                            tabIndex={0}
                             onClick={() => setSelectedStat(attribute)}
-                            className={`p-4 border rounded-sm text-left transition-all ${
+                            onKeyDown={(e) => e.key === 'Enter' || e.key === ' ' ? setSelectedStat(attribute) : undefined}
+                            className={`p-4 border rounded-sm text-left transition-all cursor-pointer ${
                               selectedStat === attribute
                                 ? 'border-primary bg-primary/10'
                                 : 'border-outline-variant/60 bg-surface-container-lowest/60 hover:border-primary/60'
@@ -839,7 +841,7 @@ export default function CharacterCreationWizard({
                                 {final} ({getAttributeMod(final)} MOD)
                               </span>
                             </div>
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
