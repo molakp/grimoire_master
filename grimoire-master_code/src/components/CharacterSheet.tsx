@@ -320,6 +320,10 @@ export default function CharacterSheet({
     0,
   );
 
+  const defaultLore = character.class.includes('Mago')
+    ? 'Thalric della foresta d\'argento. Un tempo scolaro brillante della prestigiosa accademia di Grimorio Master, bandito per aver cercato i segreti nascosti della necromanzia arcana. Ora vaga per i sotterranei alla ricerca della gemma d\'anima perfetta...'
+    : 'Un combattente coraggioso fuggito dalla morsa della distruzione di Redwall, brandisce un pesante spadone spezzatombe...';
+
   // Helper attribute modifier labels for UI previews
   const getModSymbol = (val: number) => formatModifier(getAttributeModifier(val));
 
@@ -1216,14 +1220,8 @@ export default function CharacterSheet({
                   <textarea
                     rows={8}
                     readOnly={character.locked}
-                    value={
-                      character.class.includes('Mago')
-                        ? 'Thalric della foresta d\'argento. Un tempo scolaro brillante della prestigiosa accademia di Grimorio Master, bandito per aver cercato i segreti nascosti della necromanzia arcana. Ora vaga per i sotterranei alla ricerca della gemma d\'anima perfetta...'
-                        : 'Un combattente coraggioso fuggito dalla morsa della distruzione di Redwall, brandisce un pesante spadone spezzatombe...'
-                    }
-                    onChange={(e) => {
-                      // purely cosmetic read-only diary unless they unlock and edit can be saved to dynamic character notes in state if we want.
-                    }}
+                    value={character.lore ?? defaultLore}
+                    onChange={(event) => onUpdateCharacter({ ...character, lore: event.target.value })}
                     className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded p-4 text-xs font-mono text-on-surface disabled:text-on-surface disabled:opacity-90 outline-none focus:border-primary"
                   />
                 </div>

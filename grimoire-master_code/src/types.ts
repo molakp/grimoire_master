@@ -37,6 +37,7 @@ export interface Character {
     body?: string;
   };
   originTrait?: string;
+  lore?: string;
   ownerId?: string;
   createdAt?: string;
   updatedAt?: string;
