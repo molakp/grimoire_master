@@ -3,6 +3,7 @@ import { DiceRollLog } from '../types';
 import { Sparkles, History, Trash2, X, AlertTriangle, ShieldCheck, HelpCircle } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { useNotification, NotificationCard } from './NotificationSystem';
+import { getAttributeModifier, getRollOutcome, rollDie } from '../lib/gameRules';
 
 interface DiceRollerProps {
   onAddLog?: (log: DiceRollLog) => void;
@@ -26,16 +27,7 @@ export default function DiceRoller({
   const [isRolling, setIsRolling] = useState(false);
   const [lastRoll, setLastRoll] = useState<DiceRollLog | null>(null);
 
-  const calculateModifier = (statValue: number): number => {
-    // Dungeon World standard modifier based on score
-    if (statValue <= 3) return -3;
-    if (statValue <= 5) return -2;
-    if (statValue <= 8) return -1;
-    if (statValue <= 12) return 0;
-    if (statValue <= 15) return 1;
-    if (statValue <= 17) return 2;
-    return 3;
-  };
+  const calculateModifier = getAttributeModifier;
 
   const rollDice = (type: 'action' | 'damage') => {
     if (isRolling) return;
@@ -46,14 +38,11 @@ export default function DiceRoller({
       const timestamp = new Date().toLocaleTimeString();
 
       if (type === 'action') {
-        const d1 = Math.floor(Math.random() * 6) + 1;
-        const d2 = Math.floor(Math.random() * 6) + 1;
+        const d1 = rollDie(6);
+        const d2 = rollDie(6);
         const mod = activeStatPreset ? calculateModifier(activeStatPreset.value) : customModifier;
         const total = d1 + d2 + mod;
-        let outcome: 'Success' | 'Mixed' | 'Miss' = 'Miss';
-
-        if (total >= 10) outcome = 'Success';
-        else if (total >= 7) outcome = 'Mixed';
+        const outcome = getRollOutcome(total);
 
         finalLog = {
           id: Math.random().toString(),
@@ -67,7 +56,7 @@ export default function DiceRoller({
       } else {
         // Damage die roll
         const dieSides = parseInt(damageDieType.replace('D', ''));
-        const r1 = Math.floor(Math.random() * dieSides) + 1;
+        const r1 = rollDie(dieSides);
         
         finalLog = {
           id: Math.random().toString(),

@@ -28,6 +28,7 @@ export default function App() {
 
   // Admin and ban safety hooks
   const [isAdminState, setIsAdminState] = useState(false);
+  const [isMasterAdminState, setIsMasterAdminState] = useState(false);
   const [isBannedState, setIsBannedState] = useState(false);
   const [banReason, setBanReason] = useState('');
 
@@ -40,13 +41,6 @@ export default function App() {
   const [communityCharacters, setCommunityCharacters] = useState<any[]>([]);
   const [knownUsers, setKnownUsers] = useState<UserProfile[]>([]);
   const { templates: allTemplates } = useTemplates();
-
-  // Recognize Master Admin helper
-  const isUserMasterAdmin = (email: string | null | undefined): boolean => {
-    if (!email) return false;
-    const normalized = email.toLowerCase().trim();
-    return normalized === 'silvestrofrisullo@gmail.com' || normalized === 'silvestrofrisullo.gmail.com';
-  };
 
   const upsertUserProfile = (firebaseUser: FirebaseUser) => {
     const email = firebaseUser.email?.toLowerCase().trim();
@@ -84,7 +78,10 @@ export default function App() {
       activeListeners.length = 0;
     };
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+    let authGeneration = 0;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      const generation = ++authGeneration;
       setCurrentUser(firebaseUser);
       setIsAuthLoading(false);
 
@@ -92,7 +89,18 @@ export default function App() {
 
       if (firebaseUser) {
         const uEmail = (firebaseUser.email || '').toLowerCase().trim();
-        const isMaster = isUserMasterAdmin(uEmail);
+        // The master role is granted through the `master` custom claim (see scripts/set-master-admin.ts).
+        let isMaster = false;
+        try {
+          const tokenResult = await firebaseUser.getIdTokenResult();
+          isMaster = tokenResult.claims.master === true;
+        } catch (e) {
+          console.error('Unable to read auth token claims:', e);
+        }
+        // Ignore stale results if the auth state changed while awaiting the token.
+        if (generation !== authGeneration) return;
+
+        setIsMasterAdminState(isMaster);
         setIsAdminState(isMaster);
         upsertUserProfile(firebaseUser);
 
@@ -255,6 +263,7 @@ export default function App() {
       } else {
         // Logged out structure
         setIsAdminState(false);
+        setIsMasterAdminState(false);
         setIsBannedState(false);
         setBanReason('');
         setAllMails([]);
@@ -287,7 +296,7 @@ export default function App() {
 
   // MASTER ADMIN OPERATION: Promote Admin
   const handlePromoteAdmin = async (targetEmail: string) => {
-    if (!currentUser || !isUserMasterAdmin(currentUser.email)) {
+    if (!currentUser || !isMasterAdminState) {
       notify.error("Solo l'Admin Master può gestire gli amministratori.");
       return;
     }
@@ -312,7 +321,7 @@ export default function App() {
         recipientEmail: cleanEmail,
         subject: "📜 Nomina a Grimoire Master del Tempio dei Vetri",
         content: `Per la grazia e l'autorità dell'Arcano Master, il tuo spirito accorto e la tua dedizione al Tempio dei Grimorî ti hanno valso il rango ed il titolo ufficiale di Grimoire Master.\n\nTi concediamo solennemente la facoltà di plasmare, archiviare, modificare e censurare le schede personaggio nell'Archivio Sacro.\n\nPossa la fiamma della conoscenza guidare ogni tuo incanto.\n\n— L'Admin Master del Tempio`,
-        senderEmail: currentUser.email || 'silvestrofrisullo@gmail.com',
+        senderEmail: currentUser.email || 'Master Admin',
         type: 'promotion',
         read: false,
         createdAt: new Date().toISOString()
@@ -326,7 +335,7 @@ export default function App() {
 
   // MASTER ADMIN OPERATION: Remove Admin
   const handleRemoveAdmin = async (targetEmail: string) => {
-    if (!currentUser || !isUserMasterAdmin(currentUser.email)) {
+    if (!currentUser || !isMasterAdminState) {
       notify.error("Solo l'Admin Master può gestire gli amministratori.");
       return;
     }
@@ -343,7 +352,7 @@ export default function App() {
 
   // MASTER ADMIN OPERATION: Ban User
   const handleBanUser = async (targetEmail: string, reason: string) => {
-    if (!currentUser || !isUserMasterAdmin(currentUser.email)) {
+    if (!currentUser || !isMasterAdminState) {
       notify.error("Solo l'Admin Master può espellere utenti.");
       return;
     }
@@ -368,7 +377,7 @@ export default function App() {
         recipientEmail: cleanEmail,
         subject: "🚫 Decreto di Esilio Istantaneo dal Tempio",
         content: `Il Tempio dei Grimorî non ammette profanatrici violazioni delle regole della gilda. Sotto ordinanza sigillata dell'Arcano Master, sei esiliato per la seguente fiera accusa:\n\n"${reason || 'Violazione dei sani principi della community'}"\n\nQualsiasi accesso alle scritture sacre ti è proibito.\n\n— Sentenza sigillata dall'Admin Master`,
-        senderEmail: currentUser.email || 'silvestrofrisullo@gmail.com',
+        senderEmail: currentUser.email || 'Master Admin',
         type: 'warning',
         read: false,
         createdAt: new Date().toISOString()
@@ -385,7 +394,7 @@ export default function App() {
 
   // MASTER ADMIN OPERATION: Revoke Ban (Grace)
   const handleUnbanUser = async (targetEmail: string) => {
-    if (!currentUser || !isUserMasterAdmin(currentUser.email)) {
+    if (!currentUser || !isMasterAdminState) {
       notify.error("Solo l'Admin Master può revocare gli esili.");
       return;
     }
@@ -402,7 +411,7 @@ export default function App() {
 
   // MASTER ADMIN OPERATION: Send Warning Mail
   const handleSendWarnMail = async (targetEmail: string, subject: string, content: string) => {
-    if (!currentUser || !isUserMasterAdmin(currentUser.email)) {
+    if (!currentUser || !isMasterAdminState) {
       notify.error("Solo l'Admin Master può inviare ammonimenti.");
       return;
     }
@@ -419,7 +428,7 @@ export default function App() {
         recipientEmail: cleanEmail,
         subject: subject || "⚠️ Monito Solenne del Custode del Grimorio",
         content: content,
-        senderEmail: currentUser.email || 'silvestrofrisullo@gmail.com',
+        senderEmail: currentUser.email || 'Master Admin',
         type: 'warning',
         read: false,
         createdAt: new Date().toISOString()
@@ -713,7 +722,7 @@ export default function App() {
           isAuthLoading={isAuthLoading}
           
           isAdmin={isAdminState}
-          isMasterAdmin={isUserMasterAdmin(currentUser?.email)}
+          isMasterAdmin={isMasterAdminState}
           officialTemplates={officialTemplates}
           communityCharacters={communityCharacters}
           unreadMails={unreadMails}

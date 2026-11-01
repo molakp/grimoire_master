@@ -13,6 +13,8 @@ interface AdminCourtProps {
   onUnbanUser: (email: string) => Promise<void>;
   onSendWarnMail: (email: string, subject: string, content: string) => Promise<void>;
   onClose: () => void;
+  masterEmail?: string | null;
+  masterName?: string | null;
 }
 
 export default function AdminCourt({
@@ -26,6 +28,8 @@ export default function AdminCourt({
   onUnbanUser,
   onSendWarnMail,
   onClose,
+  masterEmail: masterEmailProp,
+  masterName,
 }: AdminCourtProps) {
   const [activeSubTab, setActiveSubTab] = useState<'admins' | 'bans' | 'warnings' | 'users'>('users');
 
@@ -83,7 +87,7 @@ export default function AdminCourt({
       details?: string;
     }>();
 
-    const masterEmail = "silvestrofrisullo@gmail.com";
+    const masterEmail = masterEmailProp?.toLowerCase().trim() || '';
 
     knownUsers.forEach((user) => {
       const email = user.emailLower || user.email.toLowerCase().trim();
@@ -99,23 +103,25 @@ export default function AdminCourt({
       });
     });
 
-    userMap.set(masterEmail, {
-      email: masterEmail,
-      name: 'Silvestro Frisullo',
-      role: 'Master Admin ⚜️',
-      type: 'master',
-      createdAt: 'Origine dei Tempi',
-      details: 'Sovrano e Creatore del Grembo'
-    });
+    if (masterEmail) {
+      userMap.set(masterEmail, {
+        email: masterEmail,
+        name: masterName?.trim() || userMap.get(masterEmail)?.name || masterEmail.split('@')[0],
+        role: 'Master Admin ⚜️',
+        type: 'master',
+        createdAt: 'Origine dei Tempi',
+        details: 'Sovrano e Creatore del Grembo'
+      });
+    }
 
     adminsList.forEach(admin => {
       const email = admin.email.toLowerCase().trim();
-      const isMaster = email === masterEmail || admin.role === 'master';
+      const isMaster = (masterEmail !== '' && email === masterEmail) || admin.role === 'master';
       const existing = userMap.get(email);
 
       userMap.set(email, {
         email: admin.email,
-        name: isMaster ? 'Silvestro Frisullo' : (existing?.name || email.split('@')[0]),
+        name: existing?.name || email.split('@')[0],
         role: isMaster ? 'Master Admin ⚜️' : 'Grimoire Admin 🛡️',
         type: isMaster ? 'master' : 'admin',
         createdAt: admin.createdAt,
@@ -165,7 +171,7 @@ export default function AdminCourt({
     });
 
     return Array.from(userMap.values());
-  }, [knownUsers, adminsList, bannedList, communityCharacters]);
+  }, [knownUsers, adminsList, bannedList, communityCharacters, masterEmailProp, masterName]);
 
   // Filtered system users based on the search query
   const filteredSystemUsers = useMemo(() => {

@@ -386,6 +386,8 @@ export default function Dashboard({
         {activeTab === 'court' && isMasterAdmin ? (
           <div className="animate-[fadeIn_0.32s_ease]">
             <AdminCourt
+              masterEmail={currentUser?.email}
+              masterName={currentUser?.displayName}
               adminsList={adminsList}
               bannedList={bannedList}
               knownUsers={knownUsers}

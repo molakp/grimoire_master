@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, BookOpen, Eye, Save, Scale, Sparkles, Star, User, X } from 'lucide-react';
 import { Character, CharacterTemplate } from '../types';
+import { formatModifier, getAttributeModifier } from '../lib/gameRules';
 
 type AttributeKey = keyof Character['attributes'];
 
@@ -64,10 +65,7 @@ const DEFAULT_APPEARANCE = {
   body: ''
 };
 
-const getAttributeMod = (score: number): string => {
-  const mod = Math.floor((score - 10) / 2);
-  return mod >= 0 ? `+${mod}` : `${mod}`;
-};
+const getAttributeMod = (score: number): string => formatModifier(getAttributeModifier(score));
 
 const getTemplateConfig = (template: CharacterTemplate): TemplateWizardConfig => {
   // Read directly from Firebase template fields

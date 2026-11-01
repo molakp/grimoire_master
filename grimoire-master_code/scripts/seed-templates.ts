@@ -1,24 +1,10 @@
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
+import { adminDb as db } from './admin-app';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const serviceAccountPath = path.resolve(
-  __dirname,
-  '../../gen-lang-client-0877151034-firebase-adminsdk-fbsvc-934f1f6b5a.json'
-);
-
-const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-
-const app = initializeApp({
-  credential: cert(serviceAccount),
-});
-
-const db = getFirestore(app, 'ai-studio-01553575-a66d-4ca3-9223-0bb0e7656638');
 
 const templatesDir = path.join(__dirname, '../src/data/templates');
 

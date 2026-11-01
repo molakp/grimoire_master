@@ -25,12 +25,9 @@ service cloud.firestore {
     }
 
     // MASTER & ADMIN RBAC CHECKS
+    // The master role is a Firebase Auth custom claim, set with scripts/set-master-admin.ts.
     function isMasterAdmin() {
-      return isSignedIn() && (
-        request.auth.token.emailLower == "silvestrofrisullo@gmail.com" ||
-        request.auth.token.email.lower() == "silvestrofrisullo@gmail.com" ||
-        request.auth.token.email.lower() == "silvestrofrisullo.gmail.com"
-      );
+      return isSignedIn() && request.auth.token.get('master', false) == true;
     }
 
     function isAdmin() {

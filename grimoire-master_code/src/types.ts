@@ -99,19 +99,19 @@ export interface CharacterTemplate {
   avatar: string;
   defaultStats: Character;
 
-  // Wizard config — replaces the hardcoded getTemplateConfig() in the wizard
-  races: TemplateRace[];
-  alignments: TemplateAlignment[];
-  appearanceOptions: TemplateAppearanceOptions;
-  originTrait: string;
-  classBonus: { attribute: AttributeKey; value: number };
-  startingHp: number;        // base HP before Constitution bonus
-  damageDie: string;         // e.g. 'D10'
-  startingArmor: number;
-  startingLoad: number;
-  classMoves: ClassMove[];
-  gearChoices: { options: { name: string; weight: number }[] }[];  // each group = one choice
-  bonds: string[];           // bond statement templates (companion left blank)
+  // Wizard config. Optional: legacy fallback templates and admin-created templates only define defaultStats.
+  races?: TemplateRace[];
+  alignments?: TemplateAlignment[];
+  appearanceOptions?: TemplateAppearanceOptions;
+  originTrait?: string;
+  classBonus?: { attribute: AttributeKey; value: number };
+  startingHp?: number;        // base HP before Constitution bonus
+  damageDie?: string;         // e.g. 'D10'
+  startingArmor?: number;
+  startingLoad?: number;
+  classMoves?: ClassMove[];
+  gearChoices?: { options: { name: string; weight: number }[] }[];  // each group = one choice
+  bonds?: string[];           // bond statement templates (companion left blank)
   availableSpells?: Spell[]; // only for Mago and Chierico
 }
 

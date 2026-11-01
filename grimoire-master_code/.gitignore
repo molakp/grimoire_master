@@ -11,3 +11,6 @@ coverage/
 *firebase-adminsdk*.json
 *service-account*.json
 *serviceAccount*.json
+
+# Firebase CLI cache
+.firebase/

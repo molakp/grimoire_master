@@ -2,6 +2,7 @@ import { useState, useEffect, ReactNode, FormEvent, ChangeEvent } from 'react';
 import { Character, CharacterTemplate, DiceRollLog } from '../types';
 import { Shield, BookOpen, Swords, Heart, User, Sparkles, Plus, Minus, Lock, Unlock, Trash2, ArrowLeft, RotateCcw, CloudLightning } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
+import { formatModifier, getAttributeModifier } from '../lib/gameRules';
 
 interface CharacterSheetProps {
   character: Character;
@@ -192,15 +193,7 @@ export default function CharacterSheet({
   const activeWeightSum = character.gear.reduce((acc, item) => acc + item.weight, 0);
 
   // Helper attribute modifier labels for UI previews
-  const getModSymbol = (val: number) => {
-    if (val <= 3) return '-3';
-    if (val <= 5) return '-2';
-    if (val <= 8) return '-1';
-    if (val <= 12) return '0';
-    if (val <= 15) return '+1';
-    if (val <= 17) return '+2';
-    return '+3';
-  };
+  const getModSymbol = (val: number) => formatModifier(getAttributeModifier(val));
 
   // Map simple descriptive stats labels
   const attributeLongNames = {
@@ -560,7 +553,7 @@ export default function CharacterSheet({
                     🛡️ RAZZA
                   </h3>
                   <div className="space-y-4 text-left">
-                    {template ? (
+                    {template?.races ? (
                       template.races.map((race) => {
                         const isSelected = character.race.toUpperCase() === race.name.toUpperCase();
                         if (character.locked && !isSelected) return null;
@@ -613,7 +606,7 @@ export default function CharacterSheet({
                     ⚖️ ALLINEAMENTO
                   </h3>
                   <div className="space-y-3 text-left">
-                    {template ? (
+                    {template?.alignments ? (
                       template.alignments.map((alignment) => {
                         const isSelected = character.alignment.toUpperCase() === alignment.name.toUpperCase();
                         if (character.locked && !isSelected) return null;
@@ -666,7 +659,7 @@ export default function CharacterSheet({
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                  {template ? (
+                  {template?.classMoves ? (
                     template.classMoves.filter(m => m.isStarting).map((move) => (
                       <article key={move.name} className="space-y-2">
                         <h4 className="font-serif font-bold text-primary mb-1">{move.name.toUpperCase()}</h4>
@@ -880,7 +873,7 @@ export default function CharacterSheet({
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                {(template ? template.classMoves.filter(m => !m.isStarting) : ADVANCED_MOVES).map((move) => {
+                {(template?.classMoves ? template.classMoves.filter(m => !m.isStarting) : ADVANCED_MOVES).map((move) => {
                   const moveKey = move.name;
                   const isSelected = isMoveSelected(moveKey);
                   if (character.locked && !isSelected) return null;
