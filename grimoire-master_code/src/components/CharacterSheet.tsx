@@ -14,6 +14,10 @@ const ATTRIBUTE_NAMES: Record<AttributeKey, string> = {
   CAR: 'Carisma',
 };
 
+const getDefaultLore = (character: Character) => character.class.includes('Mago')
+  ? 'Thalric della foresta d\'argento. Un tempo scolaro brillante della prestigiosa accademia di Grimorio Master, bandito per aver cercato i segreti nascosti della necromanzia arcana. Ora vaga per i sotterranei alla ricerca della gemma d\'anima perfetta...'
+  : 'Un combattente coraggioso fuggito dalla morsa della distruzione di Redwall, brandisce un pesante spadone spezzatombe...';
+
 interface CharacterSheetProps {
   character: Character;
   onUpdateCharacter: (character: Character) => void;
@@ -55,6 +59,11 @@ export default function CharacterSheet({
   const isSpellcaster = template
     ? (template.availableSpells?.length ?? 0) > 0
     : character.class.toLowerCase().includes('mago') || character.class.toLowerCase().includes('chierico');
+
+  const [loreDraft, setLoreDraft] = useState(character.lore ?? getDefaultLore(character));
+  useEffect(() => {
+    setLoreDraft(character.lore ?? getDefaultLore(character));
+  }, [character.id]);
 
   const [selectedAttribute, setSelectedAttribute] = useState<AttributeKey>('INT');
   const [newGearName, setNewGearName] = useState('');
@@ -319,10 +328,6 @@ export default function CharacterSheet({
     (total, item) => total + item.weight * getGearQuantity(item),
     0,
   );
-
-  const defaultLore = character.class.includes('Mago')
-    ? 'Thalric della foresta d\'argento. Un tempo scolaro brillante della prestigiosa accademia di Grimorio Master, bandito per aver cercato i segreti nascosti della necromanzia arcana. Ora vaga per i sotterranei alla ricerca della gemma d\'anima perfetta...'
-    : 'Un combattente coraggioso fuggito dalla morsa della distruzione di Redwall, brandisce un pesante spadone spezzatombe...';
 
   // Helper attribute modifier labels for UI previews
   const getModSymbol = (val: number) => formatModifier(getAttributeModifier(val));
@@ -1220,8 +1225,12 @@ export default function CharacterSheet({
                   <textarea
                     rows={8}
                     readOnly={character.locked}
-                    value={character.lore ?? defaultLore}
-                    onChange={(event) => onUpdateCharacter({ ...character, lore: event.target.value })}
+                    value={loreDraft}
+                    onChange={(event) => {
+                      const lore = event.target.value;
+                      setLoreDraft(lore);
+                      onUpdateCharacter({ ...character, lore });
+                    }}
                     className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded p-4 text-xs font-mono text-on-surface disabled:text-on-surface disabled:opacity-90 outline-none focus:border-primary"
                   />
                 </div>
