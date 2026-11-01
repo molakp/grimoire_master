@@ -61,8 +61,11 @@ jobs:
   preview:
     name: Deploy preview channel
     needs: check
-    # Secrets are not available to PRs from forks, so previews only run for branches in this repo.
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    # Secrets are not available to PRs from forks or Dependabot, so previews only run for other branches in this repo.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
