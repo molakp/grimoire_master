@@ -25,7 +25,7 @@ export interface Character {
   alignment: string;
   alignmentDesc?: string;
   bonds: { companion: string; statement: string }[];
-  gear: { name: string; weight: number }[];
+  gear: { name: string; weight: number; quantity?: number; consumable?: boolean }[];
   maxWeight: number;
   locked?: boolean;
   preparedSpellNames?: string[];

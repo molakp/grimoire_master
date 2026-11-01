@@ -59,6 +59,8 @@ export default function CharacterSheet({
   const [selectedAttribute, setSelectedAttribute] = useState<AttributeKey>('INT');
   const [newGearName, setNewGearName] = useState('');
   const [newGearWeight, setNewGearWeight] = useState(1);
+  const [newGearQuantity, setNewGearQuantity] = useState(1);
+  const [newGearConsumable, setNewGearConsumable] = useState(false);
   const [isModifierModalOpen, setIsModifierModalOpen] = useState(false);
   const [newModifierName, setNewModifierName] = useState('');
   const [newModifierValue, setNewModifierValue] = useState('-1');
@@ -238,11 +240,27 @@ export default function CharacterSheet({
     });
   };
 
-  // Update specific bond companion name
-  const handleBondChange = (index: number, name: string) => {
-    const updated = { ...character };
-    updated.bonds[index].companion = name;
-    onUpdateCharacter(updated);
+  const handleBondChange = (index: number, field: 'companion' | 'statement', value: string) => {
+    const bonds = character.bonds.map((bond, bondIndex) =>
+      bondIndex === index ? { ...bond, [field]: value } : bond,
+    );
+    onUpdateCharacter({ ...character, bonds });
+  };
+
+  const handleAddBond = () => {
+    if (character.locked) return;
+    onUpdateCharacter({
+      ...character,
+      bonds: [...character.bonds, { companion: '', statement: '' }],
+    });
+  };
+
+  const handleDeleteBond = (index: number) => {
+    if (character.locked) return;
+    onUpdateCharacter({
+      ...character,
+      bonds: character.bonds.filter((_, bondIndex) => bondIndex !== index),
+    });
   };
 
   // Toggle character locking status
@@ -257,11 +275,34 @@ export default function CharacterSheet({
     e.preventDefault();
     if (!newGearName.trim()) return;
 
-    const updated = { ...character };
-    updated.gear = [...updated.gear, { name: newGearName, weight: newGearWeight }];
-    onUpdateCharacter(updated);
+    onUpdateCharacter({
+      ...character,
+      gear: [...character.gear, {
+        name: newGearName.trim(),
+        weight: newGearWeight,
+        quantity: newGearConsumable ? newGearQuantity : 1,
+        consumable: newGearConsumable,
+      }],
+    });
     setNewGearName('');
     setNewGearWeight(1);
+    setNewGearQuantity(1);
+    setNewGearConsumable(false);
+  };
+
+  const isGearConsumable = (item: Character['gear'][number]) =>
+    item.consumable ?? (item.quantity !== undefined && item.quantity > 1);
+  const getGearQuantity = (item: Character['gear'][number]) =>
+    isGearConsumable(item) ? item.quantity ?? 1 : 1;
+
+  const handleAdjustGearQuantity = (index: number, amount: number) => {
+    if (character.locked || !character.gear[index] || !isGearConsumable(character.gear[index])) return;
+    const gear = character.gear.map((item, itemIndex) =>
+      itemIndex === index
+        ? { ...item, quantity: Math.max(0, (item.quantity ?? 1) + amount) }
+        : item,
+    );
+    onUpdateCharacter({ ...character, gear });
   };
 
   // Delete inventory item
@@ -274,7 +315,10 @@ export default function CharacterSheet({
   };
 
   // Total calculated active equipment weight
-  const activeWeightSum = character.gear.reduce((acc, item) => acc + item.weight, 0);
+  const activeWeightSum = character.gear.reduce(
+    (total, item) => total + item.weight * getGearQuantity(item),
+    0,
+  );
 
   // Helper attribute modifier labels for UI previews
   const getModSymbol = (val: number) => formatModifier(getAttributeModifier(val));
@@ -786,23 +830,54 @@ export default function CharacterSheet({
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
                 {/* Bonds Box */}
                 <div className="lg:col-span-8 bg-surface-container-high deckle-edge p-6">
-                  <h3 className="font-serif text-xl font-bold text-primary mb-4 flex items-center gap-2">
-                    👥 LEGAMI
-                  </h3>
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <h3 className="font-serif text-xl font-bold text-primary flex items-center gap-2">
+                      👥 LEGAMI
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={handleAddBond}
+                      disabled={character.locked}
+                      className="flex items-center gap-1 rounded border border-outline-variant/50 px-2.5 py-1.5 text-xs font-mono text-primary hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Plus size={14} />
+                      Aggiungi
+                    </button>
+                  </div>
                   <div className="space-y-4">
+                    {character.bonds.length === 0 && (
+                      <p className="text-xs text-on-surface-variant italic">Nessun legame. Aggiungine uno.</p>
+                    )}
                     {character.bonds.map((bond, index) => (
                       <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-outline-variant/20 pb-3 last:border-0 last:pb-0">
                         <input
                           type="text"
                           disabled={character.locked}
                           placeholder="Nome compagno"
+                          aria-label={`Nome compagno legame ${index + 1}`}
                           value={bond.companion}
-                          onChange={(e) => handleBondChange(index, e.target.value)}
-                          className="bg-surface-container border border-outline-variant/30 text-on-surface text-xs font-mono rounded px-2.5 py-1 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                          onChange={(event) => handleBondChange(index, 'companion', event.target.value)}
+                          className="w-full sm:w-36 shrink-0 bg-surface-container border border-outline-variant/30 text-on-surface text-xs font-mono rounded px-2.5 py-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none disabled:opacity-50"
                         />
-                        <p className="text-xs text-on-surface-variant leading-relaxed">
-                          {bond.statement}
-                        </p>
+                        <input
+                          type="text"
+                          disabled={character.locked}
+                          placeholder="Descrivi il legame..."
+                          aria-label={`Testo legame ${index + 1}`}
+                          value={bond.statement}
+                          onChange={(event) => handleBondChange(index, 'statement', event.target.value)}
+                          className="w-full min-w-0 flex-1 bg-surface-container border border-outline-variant/30 text-on-surface text-xs rounded px-2.5 py-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none disabled:opacity-50"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBond(index)}
+                          disabled={character.locked}
+                          aria-label={`Elimina legame ${index + 1}`}
+                          title="Elimina legame"
+                          className="self-end sm:self-auto shrink-0 rounded p-2 text-red-400 hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -824,14 +899,45 @@ export default function CharacterSheet({
                           key={idx}
                           className="flex justify-between p-2 bg-surface-container-highest/30 border border-outline-variant/10 rounded group text-xs items-center hover:bg-surface-container"
                         >
-                          <span className="font-sans font-medium text-on-surface hover:text-primary">
-                            {item.name}
-                          </span>
+                          <div className="min-w-0">
+                            <span className="block truncate font-sans font-medium text-on-surface hover:text-primary">
+                              {item.name}
+                            </span>
+                            <span className="text-[10px] text-outline font-mono">
+                              Peso: {item.weight * getGearQuantity(item)}
+                            </span>
+                          </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-on-surface-variant font-bold">{item.weight}</span>
+                            {isGearConsumable(item) && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAdjustGearQuantity(idx, -1)}
+                                  disabled={character.locked || (item.quantity ?? 1) <= 0}
+                                  aria-label={`Riduci quantità di ${item.name}`}
+                                  className="rounded p-1 text-on-surface-variant hover:bg-surface-variant disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  <Minus size={12} />
+                                </button>
+                                <span className="min-w-5 text-center font-mono text-on-surface-variant font-bold">
+                                  {item.quantity ?? 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAdjustGearQuantity(idx, 1)}
+                                  disabled={character.locked}
+                                  aria-label={`Aumenta quantità di ${item.name}`}
+                                  className="rounded p-1 text-on-surface-variant hover:bg-surface-variant disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                              </>
+                            )}
                             {!character.locked && (
                               <button
+                                type="button"
                                 onClick={() => handleDeleteGear(idx)}
+                                aria-label={`Elimina ${item.name}`}
                                 className="text-red-400 hover:text-red-300 p-0.5"
                               >
                                 <Trash2 size={12} />
@@ -857,7 +963,7 @@ export default function CharacterSheet({
                   {/* Add item form within sidebar boundaries */}
                   {!character.locked && (
                     <form onSubmit={handleAddGear} className="mt-4 border-t border-outline-variant/20 pt-4 space-y-2">
-                      <div className="flex gap-2">
+                      <div className={`grid gap-2 ${newGearConsumable ? 'grid-cols-[minmax(0,1fr)_3.25rem_3.25rem]' : 'grid-cols-[minmax(0,1fr)_3.25rem]'}`}>
                         <input
                           type="text"
                           required
@@ -870,17 +976,44 @@ export default function CharacterSheet({
                           type="number"
                           required
                           min="0"
-                          max="10"
+                          step="1"
                           value={newGearWeight}
                           onChange={(e) => setNewGearWeight(parseInt(e.target.value) || 0)}
-                          className="w-12 bg-surface-container-lowest border border-outline-variant/30 text-xs text-center px-1 py-1 text-on-surface rounded outline-none font-mono"
+                          aria-label="Peso unitario"
+                          placeholder="Peso"
+                          className="w-full bg-surface-container-lowest border border-outline-variant/30 text-xs text-center px-1 py-1 text-on-surface rounded outline-none font-mono"
                         />
+                        {newGearConsumable && (
+                          <input
+                            type="number"
+                            required
+                            min="1"
+                            step="1"
+                            value={newGearQuantity}
+                            onChange={(e) => setNewGearQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                            aria-label="Quantità"
+                            placeholder="Qtà"
+                            className="w-full bg-surface-container-lowest border border-outline-variant/30 text-xs text-center px-1 py-1 text-on-surface rounded outline-none font-mono"
+                          />
+                        )}
                       </div>
+                      <label className="flex items-center gap-2 text-[10px] font-mono text-on-surface-variant">
+                        <input
+                          type="checkbox"
+                          checked={newGearConsumable}
+                          onChange={(event) => {
+                            setNewGearConsumable(event.target.checked);
+                            if (!event.target.checked) setNewGearQuantity(1);
+                          }}
+                          className="accent-primary"
+                        />
+                        Consumabile (quantità modificabile)
+                      </label>
                       <button
                         type="submit"
                         className="w-full py-1 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 hover:scale-95 duration-200 transition-all font-mono text-[10px] font-bold uppercase rounded"
                       >
-                        Aggiungi Oggetto (+ peso)
+                        Aggiungi Oggetto
                       </button>
                     </form>
                   )}
@@ -907,18 +1040,50 @@ export default function CharacterSheet({
                     key={idx}
                     className="p-3 bg-surface-container-lowest border border-outline-variant/30 rounded flex justify-between items-center"
                   >
-                    <div>
+                    <div className="min-w-0">
                       <h4 className="font-serif text-md text-primary font-bold">{item.name}</h4>
-                      <p className="text-xs text-outline font-mono">Peso: {item.weight}</p>
+                      <p className="text-xs text-outline font-mono">
+                        Peso unitario: {item.weight}
+                        {isGearConsumable(item) && <> · Quantità: {item.quantity ?? 1}</>}
+                      </p>
                     </div>
-                    {!character.locked && (
-                      <button
-                        onClick={() => handleDeleteGear(idx)}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                    <div className="ml-3 flex shrink-0 items-center gap-1">
+                      {isGearConsumable(item) && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleAdjustGearQuantity(idx, -1)}
+                            disabled={character.locked || (item.quantity ?? 1) <= 0}
+                            aria-label={`Riduci quantità di ${item.name}`}
+                            className="rounded p-2 text-on-surface-variant hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="min-w-6 text-center font-mono text-sm text-on-surface">
+                            {item.quantity ?? 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleAdjustGearQuantity(idx, 1)}
+                            disabled={character.locked}
+                            aria-label={`Aumenta quantità di ${item.name}`}
+                            className="rounded p-2 text-on-surface-variant hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </>
+                      )}
+                      {!character.locked && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteGear(idx)}
+                          aria-label={`Elimina ${item.name}`}
+                          className="rounded p-2 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -927,7 +1092,7 @@ export default function CharacterSheet({
                 <div className="bg-surface-container-low border border-outline-variant/30 p-4 rounded max-w-md">
                   <h4 className="font-mono text-xs font-bold text-primary uppercase mb-2">Equipaggia un Nuovo Strumento</h4>
                   <form onSubmit={handleAddGear} className="space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className={`grid gap-3 ${newGearConsumable ? 'grid-cols-4' : 'grid-cols-3'}`}>
                       <input
                         type="text"
                         required
@@ -945,7 +1110,32 @@ export default function CharacterSheet({
                         onChange={(e) => setNewGearWeight(parseInt(e.target.value) || 0)}
                         className="bg-surface-container-lowest border border-outline-variant/30 text-xs text-center px-2 py-2 text-on-surface rounded outline-none font-mono"
                       />
+                      {newGearConsumable && (
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          step="1"
+                          placeholder="Quantità"
+                          aria-label="Quantità nuovo oggetto"
+                          value={newGearQuantity}
+                          onChange={(e) => setNewGearQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="bg-surface-container-lowest border border-outline-variant/30 text-xs text-center px-2 py-2 text-on-surface rounded outline-none font-mono"
+                        />
+                      )}
                     </div>
+                    <label className="flex items-center gap-2 text-xs text-on-surface-variant">
+                      <input
+                        type="checkbox"
+                        checked={newGearConsumable}
+                        onChange={(event) => {
+                          setNewGearConsumable(event.target.checked);
+                          if (!event.target.checked) setNewGearQuantity(1);
+                        }}
+                        className="accent-primary"
+                      />
+                      Consumabile (quantità modificabile)
+                    </label>
                     <button
                       type="submit"
                       className="w-full py-2 bg-gradient-to-r from-primary-container to-primary text-on-primary font-mono text-xs font-bold rounded"
