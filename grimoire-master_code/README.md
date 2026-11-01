@@ -160,7 +160,7 @@ Dependabot (`.github/dependabot.yml`) opens weekly update PRs for npm packages a
 
 ### One-time GitHub setup
 
-1. In Google Cloud, create a service account for the Firebase project with the **Firebase Hosting Admin** and **Firebase Rules Admin** roles. Create a JSON key for it.
+1. In Google Cloud, create a service account for the Firebase project with the **Firebase Hosting Admin**, **Firebase Rules Admin**, and **Service Usage Consumer** (`roles/serviceusage.serviceUsageConsumer`) roles. Service Usage Consumer lets the Firebase CLI check whether the required APIs are enabled (`serviceusage.services.get`); without it the deploy fails with a 403 on `serviceusage.googleapis.com`. Create a JSON key for it.
 2. In the GitHub repository, open **Settings → Secrets and variables → Actions**:
    - Add the secret `FIREBASE_SERVICE_ACCOUNT` with the full content of the JSON key. Then delete the key file from your computer.
    - Add these variables (the same values as `.env.local`; they are public web configuration): `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_FIRESTORE_DB_ID`.
