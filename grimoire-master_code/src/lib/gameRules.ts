@@ -13,6 +13,10 @@ export function getAttributeModifier(score: number): number {
   return 3;
 }
 
+export function getRollModifier(score: number, additionalModifier = 0): number {
+  return getAttributeModifier(score) + additionalModifier;
+}
+
 export function formatModifier(modifier: number): string {
   return modifier > 0 ? `+${modifier}` : `${modifier}`;
 }

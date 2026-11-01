@@ -1,14 +1,29 @@
 import { useState, useEffect, ReactNode, FormEvent, ChangeEvent } from 'react';
-import { Character, CharacterTemplate, DiceRollLog } from '../types';
-import { Shield, BookOpen, Swords, Heart, User, Sparkles, Plus, Minus, Lock, Unlock, Trash2, ArrowLeft, RotateCcw, CloudLightning } from 'lucide-react';
+import { AttributeKey, Character, CharacterTemplate, DiceRollLog, StatModifier } from '../types';
+import { Shield, BookOpen, Swords, Heart, User, Sparkles, Plus, Minus, Lock, Unlock, Trash2, ArrowLeft, RotateCcw, CloudLightning, X } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import { formatModifier, getAttributeModifier } from '../lib/gameRules';
+
+const ATTRIBUTE_KEYS: AttributeKey[] = ['INT', 'FOR', 'DES', 'COS', 'SAG', 'CAR'];
+const ATTRIBUTE_NAMES: Record<AttributeKey, string> = {
+  INT: 'Intelligenza',
+  FOR: 'Forza',
+  DES: 'Destrezza',
+  COS: 'Costituzione',
+  SAG: 'Saggezza',
+  CAR: 'Carisma',
+};
 
 interface CharacterSheetProps {
   character: Character;
   onUpdateCharacter: (character: Character) => void;
   onBackToDashboard: () => void;
-  onRollStat: (statName: string, statValue: number) => void;
+  onRollStat: (
+    statName: string,
+    statValue: number,
+    additionalModifier: number,
+    appliedModifiers: Pick<StatModifier, 'name' | 'icon' | 'value'>[],
+  ) => void;
   activeTab: 'stats' | 'spells' | 'moves' | 'gear' | 'lore';
   setActiveTab: (tab: 'stats' | 'spells' | 'moves' | 'gear' | 'lore') => void;
   renderSpellsTab: () => ReactNode;
@@ -41,9 +56,14 @@ export default function CharacterSheet({
     ? (template.availableSpells?.length ?? 0) > 0
     : character.class.toLowerCase().includes('mago') || character.class.toLowerCase().includes('chierico');
 
-  const [selectedAttribute, setSelectedAttribute] = useState<'INT' | 'FOR' | 'DES' | 'COS' | 'SAG' | 'CAR'>('INT');
+  const [selectedAttribute, setSelectedAttribute] = useState<AttributeKey>('INT');
   const [newGearName, setNewGearName] = useState('');
   const [newGearWeight, setNewGearWeight] = useState(1);
+  const [isModifierModalOpen, setIsModifierModalOpen] = useState(false);
+  const [newModifierName, setNewModifierName] = useState('');
+  const [newModifierValue, setNewModifierValue] = useState('-1');
+  const [newModifierIcon, setNewModifierIcon] = useState('🌙');
+  const [newModifierAttributes, setNewModifierAttributes] = useState<AttributeKey[]>([]);
 
   // Community publishing state
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
@@ -149,9 +169,73 @@ export default function CharacterSheet({
 
   // Level up ritual
   const [isLevelUpModalOpen, setIsLevelUpModalOpen] = useState(false);
+  const [levelUpAttribute, setLevelUpAttribute] = useState<AttributeKey>('INT');
   const handleLevelUp = () => {
-    onUpdateCharacter({ ...character, level: character.level + 1, experience: 0 });
+    if (character.locked || character.attributes[levelUpAttribute] >= 18) return;
+    onUpdateCharacter({
+      ...character,
+      level: character.level + 1,
+      experience: 0,
+      attributes: {
+        ...character.attributes,
+        [levelUpAttribute]: character.attributes[levelUpAttribute] + 1,
+      },
+    });
     setIsLevelUpModalOpen(false);
+  };
+
+  const openLevelUpModal = () => {
+    const availableAttributes = ATTRIBUTE_KEYS.filter((attribute) => character.attributes[attribute] < 18);
+    setLevelUpAttribute(
+      availableAttributes.includes(selectedAttribute) ? selectedAttribute : availableAttributes[0] || 'INT',
+    );
+    setIsLevelUpModalOpen(true);
+  };
+
+  const getModifiersForAttribute = (attribute: AttributeKey) =>
+    (character.statModifiers || []).filter((modifier) => modifier.attributes.includes(attribute));
+  const getCircumstanceModifier = (attribute: AttributeKey) =>
+    getModifiersForAttribute(attribute).reduce((total, modifier) => total + modifier.value, 0);
+  const selectedAttributeModifiers = getModifiersForAttribute(selectedAttribute);
+  const selectedCircumstanceModifier = selectedAttributeModifiers.reduce((total, modifier) => total + modifier.value, 0);
+
+  const openModifierModal = () => {
+    setNewModifierName('');
+    setNewModifierValue('-1');
+    setNewModifierIcon('🌙');
+    setNewModifierAttributes([selectedAttribute]);
+    setIsModifierModalOpen(true);
+  };
+
+  const handleAddStatModifier = (event: FormEvent) => {
+    event.preventDefault();
+    const value = Number(newModifierValue);
+    if (
+      character.locked ||
+      !newModifierName.trim() ||
+      !Number.isInteger(value) ||
+      value === 0 ||
+      newModifierAttributes.length === 0
+    ) return;
+
+    const modifier: StatModifier = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name: newModifierName.trim(),
+      icon: newModifierIcon,
+      value,
+      attributes: newModifierAttributes,
+    };
+    onUpdateCharacter({ ...character, statModifiers: [...(character.statModifiers || []), modifier] });
+    setNewModifierName('');
+    setNewModifierValue('-1');
+  };
+
+  const handleRemoveStatModifier = (id: string) => {
+    if (character.locked) return;
+    onUpdateCharacter({
+      ...character,
+      statModifiers: (character.statModifiers || []).filter((modifier) => modifier.id !== id),
+    });
   };
 
   // Update specific bond companion name
@@ -194,16 +278,6 @@ export default function CharacterSheet({
 
   // Helper attribute modifier labels for UI previews
   const getModSymbol = (val: number) => formatModifier(getAttributeModifier(val));
-
-  // Map simple descriptive stats labels
-  const attributeLongNames = {
-    INT: 'Intelligenza',
-    FOR: 'Forza',
-    DES: 'Destrezza',
-    COS: 'Costituzione',
-    SAG: 'Saggezza',
-    CAR: 'Carisma'
-  };
 
   // Dynamic race description finder
   const getRaceDescription = (raceName: string, charClassStr: string) => {
@@ -409,7 +483,7 @@ export default function CharacterSheet({
                   </div>
                   {!character.locked && character.experience > 0 && (
                     <button
-                      onClick={() => setIsLevelUpModalOpen(true)}
+                      onClick={openLevelUpModal}
                       title="Avanza di Livello"
                       className="w-5 h-5 bg-primary/20 hover:bg-primary/40 text-primary text-[10px] rounded flex items-center justify-center font-bold transition-colors"
                     >
@@ -429,7 +503,7 @@ export default function CharacterSheet({
                     {selectedAttribute}
                   </p>
                   <p className="font-serif text-md font-bold text-on-surface">
-                    {attributeLongNames[selectedAttribute]}
+                    {ATTRIBUTE_NAMES[selectedAttribute]}
                   </p>
                 </div>
                 <div className="flex flex-col items-end">
@@ -439,12 +513,31 @@ export default function CharacterSheet({
                   <span className="font-mono text-[10px] text-primary-container-variant">
                     Mod: {getModSymbol(character.attributes[selectedAttribute])}
                   </span>
+                  {selectedCircumstanceModifier !== 0 && (
+                    <span className="font-mono text-[9px] text-tertiary">
+                      Circostanze {formatModifier(selectedCircumstanceModifier)} · totale{' '}
+                      {formatModifier(getAttributeModifier(character.attributes[selectedAttribute]) + selectedCircumstanceModifier)}
+                    </span>
+                  )}
                 </div>
               </div>
+              {selectedAttributeModifiers.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {selectedAttributeModifiers.map((modifier) => (
+                    <span
+                      key={modifier.id}
+                      className="rounded bg-surface-container-high px-2 py-1 text-[10px] text-on-surface-variant"
+                      title={`${modifier.name}: ${formatModifier(modifier.value)}`}
+                    >
+                      {modifier.icon} {modifier.name} {formatModifier(modifier.value)}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Smaller attribute picker grid */}
               <div className="grid grid-cols-2 gap-2">
-                {(['INT', 'FOR', 'DES', 'COS', 'SAG', 'CAR'] as const).map((attr) => (
+                {ATTRIBUTE_KEYS.map((attr) => (
                   <button
                     key={attr}
                     type="button"
@@ -459,15 +552,30 @@ export default function CharacterSheet({
                     <span className="font-serif text-lg font-bold block">{character.attributes[attr]}</span>
                     <span className="font-mono text-[9px] block text-primary">
                       {getModSymbol(character.attributes[attr])}
+                      {getCircumstanceModifier(attr) !== 0 && ` (${formatModifier(getCircumstanceModifier(attr))})`}
                     </span>
                   </button>
                 ))}
               </div>
             </div>
 
+            <button
+              type="button"
+              onClick={openModifierModal}
+              disabled={character.locked}
+              className="w-full py-2 border border-outline-variant/50 rounded text-xs font-mono text-on-surface-variant hover:border-primary hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Gestisci modificatori ({character.statModifiers?.length || 0})
+            </button>
+
             {/* Preset roll triggering button */}
             <button
-              onClick={() => onRollStat(attributeLongNames[selectedAttribute], character.attributes[selectedAttribute])}
+              onClick={() => onRollStat(
+                ATTRIBUTE_NAMES[selectedAttribute],
+                character.attributes[selectedAttribute],
+                selectedCircumstanceModifier,
+                selectedAttributeModifiers.map(({ name, icon, value }) => ({ name, icon, value })),
+              )}
               className="w-full py-4 bg-gradient-to-r from-on-tertiary-container to-primary-container text-on-primary font-bold rounded shadow-[0_0_15px_rgba(212,175,55,0.4)] hover:scale-105 active:scale-95 transition-all font-mono text-sm uppercase tracking-wider"
             >
               Tira + {selectedAttribute}
@@ -1081,6 +1189,163 @@ export default function CharacterSheet({
         </div>
       )}
 
+      {isModifierModalOpen && (
+        <div
+          className="fixed inset-0 z-[10020] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+          onClick={() => setIsModifierModalOpen(false)}
+        >
+          <div
+            className="bg-surface-container-high border border-outline-variant rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 flex flex-col gap-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-serif text-xl text-primary font-bold">Modificatori di circostanza</h2>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  Si sommano al tiro senza cambiare il punteggio. Restano attivi finché non li rimuovi.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModifierModalOpen(false)}
+                aria-label="Chiudi gestione modificatori"
+                className="p-1 text-on-surface-variant hover:text-on-surface"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <section className="space-y-2">
+              <h3 className="font-mono text-xs uppercase tracking-wider text-on-surface-variant">
+                Effetti attivi
+              </h3>
+              {(character.statModifiers || []).length === 0 ? (
+                <p className="text-xs text-on-surface-variant/70 italic">Nessun modificatore attivo.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {(character.statModifiers || []).map((modifier) => (
+                    <li
+                      key={modifier.id}
+                      className="flex items-center justify-between gap-3 rounded border border-outline-variant/40 bg-surface-container p-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-on-surface">
+                          {modifier.icon} {modifier.name}{' '}
+                          <span className={modifier.value < 0 ? 'text-red-400' : 'text-green-400'}>
+                            {formatModifier(modifier.value)}
+                          </span>
+                        </p>
+                        <p className="text-[10px] text-on-surface-variant">
+                          {modifier.attributes.map((attribute) => attribute).join(', ')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveStatModifier(modifier.id)}
+                        disabled={character.locked}
+                        aria-label={`Rimuovi ${modifier.name}`}
+                        title="Rimuovi modificatore"
+                        className="shrink-0 p-2 text-red-400 hover:bg-red-400/10 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <form onSubmit={handleAddStatModifier} className="space-y-4 border-t border-outline-variant/40 pt-4">
+              <h3 className="font-mono text-xs uppercase tracking-wider text-on-surface-variant">
+                Aggiungi un effetto
+              </h3>
+              <div className="grid grid-cols-[1fr_auto] gap-3">
+                <label className="text-xs text-on-surface-variant">
+                  Nome
+                  <input
+                    value={newModifierName}
+                    onChange={(event) => setNewModifierName(event.target.value)}
+                    disabled={character.locked}
+                    maxLength={50}
+                    placeholder="Es. Notte insonne"
+                    className="mt-1 w-full rounded border border-outline-variant bg-surface-container px-3 py-2 text-sm text-on-surface outline-none focus:border-primary disabled:opacity-40"
+                  />
+                </label>
+                <label className="text-xs text-on-surface-variant">
+                  Icona
+                  <select
+                    value={newModifierIcon}
+                    onChange={(event) => setNewModifierIcon(event.target.value)}
+                    disabled={character.locked}
+                    className="mt-1 block rounded border border-outline-variant bg-surface-container px-3 py-2 text-lg text-on-surface outline-none focus:border-primary disabled:opacity-40"
+                  >
+                    {['🌙', '💤', '🩹', '✨', '🧪', '🔥', '❄️', '👑'].map((icon) => (
+                      <option key={icon} value={icon}>{icon}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="block text-xs text-on-surface-variant">
+                Modificatore al tiro
+                <input
+                  type="number"
+                  step="1"
+                  value={newModifierValue}
+                  onChange={(event) => setNewModifierValue(event.target.value)}
+                  disabled={character.locked}
+                  className="mt-1 block w-28 rounded border border-outline-variant bg-surface-container px-3 py-2 text-sm text-on-surface outline-none focus:border-primary disabled:opacity-40"
+                />
+              </label>
+              <fieldset disabled={character.locked} className="space-y-2 disabled:opacity-40">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-on-surface-variant">Attributi interessati</span>
+                  <button
+                    type="button"
+                    onClick={() => setNewModifierAttributes(ATTRIBUTE_KEYS)}
+                    className="text-[10px] font-mono text-primary hover:underline"
+                  >
+                    Seleziona tutti
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {ATTRIBUTE_KEYS.map((attribute) => (
+                    <label
+                      key={attribute}
+                      className="flex items-center gap-2 rounded border border-outline-variant/40 bg-surface-container px-2 py-2 text-xs text-on-surface"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={newModifierAttributes.includes(attribute)}
+                        onChange={() => setNewModifierAttributes((current) =>
+                          current.includes(attribute)
+                            ? current.filter((item) => item !== attribute)
+                            : [...current, attribute],
+                        )}
+                        className="accent-primary"
+                      />
+                      {attribute} · {ATTRIBUTE_NAMES[attribute]}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <button
+                type="submit"
+                disabled={
+                  character.locked ||
+                  !newModifierName.trim() ||
+                  !Number.isInteger(Number(newModifierValue)) ||
+                  Number(newModifierValue) === 0 ||
+                  newModifierAttributes.length === 0
+                }
+                className="w-full rounded bg-primary px-4 py-2 text-sm font-bold text-on-primary hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Aggiungi modificatore
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ⭐ RITUALE DEL LIVELLO SUPERIORE */}
       {isLevelUpModalOpen && (
         <div
@@ -1100,8 +1365,31 @@ export default function CharacterSheet({
               <span className="text-primary font-bold">{character.name}</span> avanza al{' '}
               <span className="text-primary font-bold">Livello {character.level + 1}</span>.
             </p>
+            <label className="w-full text-left text-xs font-mono text-on-surface-variant">
+              Scegli l'attributo da aumentare di 1
+              <select
+                value={levelUpAttribute}
+                onChange={(event) => setLevelUpAttribute(event.target.value as AttributeKey)}
+                className="mt-2 w-full rounded border border-outline-variant bg-surface-container px-3 py-2 text-sm text-on-surface"
+              >
+                {ATTRIBUTE_KEYS.map((attribute) => (
+                  <option
+                    key={attribute}
+                    value={attribute}
+                    disabled={character.attributes[attribute] >= 18}
+                  >
+                    {attribute} · {ATTRIBUTE_NAMES[attribute]} ({character.attributes[attribute]} → {character.attributes[attribute] + 1})
+                  </option>
+                ))}
+              </select>
+            </label>
+            {ATTRIBUTE_KEYS.every((attribute) => character.attributes[attribute] >= 18) && (
+              <p className="text-xs text-red-400 font-mono">
+                Tutti gli attributi hanno già raggiunto il massimo di 18.
+              </p>
+            )}
             <p className="text-xs text-on-surface-variant/60 font-mono italic">
-              I Punti Esperienza saranno azzerati e il rito non potrà essere disfatto.
+              Il punteggio scelto aumenta di 1 e i Punti Esperienza saranno azzerati. Il rito non potrà essere disfatto.
             </p>
             <div className="flex gap-3 w-full mt-2">
               <button
@@ -1112,7 +1400,8 @@ export default function CharacterSheet({
               </button>
               <button
                 onClick={handleLevelUp}
-                className="flex-1 py-2 rounded bg-primary text-on-primary text-sm font-serif font-bold uppercase tracking-widest hover:bg-primary/80 transition-colors shadow-[0_0_20px_rgba(242,202,80,0.3)]"
+                disabled={character.locked || character.attributes[levelUpAttribute] >= 18}
+                className="flex-1 py-2 rounded bg-primary text-on-primary text-sm font-serif font-bold uppercase tracking-widest hover:bg-primary/80 transition-colors shadow-[0_0_20px_rgba(242,202,80,0.3)] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Compi il Rito
               </button>

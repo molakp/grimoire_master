@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Character, DiceRollLog, Mail, BannedUser, Admin, CharacterTemplate, UserProfile } from './types';
+import { Character, DiceRollLog, Mail, BannedUser, Admin, CharacterTemplate, UserProfile, StatModifier } from './types';
 import { INITIAL_CHARACTER_THALRIC } from './data';
 import { useTemplates } from './hooks/useTemplates';
 import Dashboard from './components/Dashboard';
@@ -19,7 +19,12 @@ export default function App() {
   const [myCharacters, setMyCharacters] = useState<Character[]>([]);
   const [activeCharacterId, setActiveCharacterId] = useState<string | null>(null);
   const [diceLogs, setDiceLogs] = useState<DiceRollLog[]>([]);
-  const [activeStatPreset, setActiveStatPreset] = useState<{ name: string; value: number } | null>(null);
+  const [activeStatPreset, setActiveStatPreset] = useState<{
+    name: string;
+    value: number;
+    additionalModifier: number;
+    appliedModifiers: Pick<StatModifier, 'name' | 'icon' | 'value'>[];
+  } | null>(null);
   const [activeCharacterTab, setActiveCharacterTab] = useState<'stats' | 'spells' | 'moves' | 'gear' | 'lore'>('stats');
 
   // Firebase auth & syncing state
@@ -542,8 +547,13 @@ export default function App() {
   const activeCharacter = myCharacters.find((char) => char.id === activeCharacterId);
 
   // Triggering test preset rolling
-  const handleRollStat = (statName: string, statValue: number) => {
-    setActiveStatPreset({ name: statName, value: statValue });
+  const handleRollStat = (
+    statName: string,
+    statValue: number,
+    additionalModifier: number,
+    appliedModifiers: Pick<StatModifier, 'name' | 'icon' | 'value'>[],
+  ) => {
+    setActiveStatPreset({ name: statName, value: statValue, additionalModifier, appliedModifiers });
   };
 
   // CHARACTER OPERATION: Update Character (Local + Cloud Sync)

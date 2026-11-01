@@ -14,6 +14,7 @@ export interface Character {
     SAG: number;
     CAR: number;
   };
+  statModifiers?: StatModifier[];
   vitality: {
     max: number;
     current: number;
@@ -61,6 +62,14 @@ export interface DiceRollLog {
 }
 
 export type AttributeKey = 'INT' | 'FOR' | 'DES' | 'COS' | 'SAG' | 'CAR';
+
+export interface StatModifier {
+  id: string;
+  name: string;
+  icon: string;
+  value: number;
+  attributes: AttributeKey[];
+}
 
 export interface TemplateRace {
   id: string;
@@ -150,4 +159,3 @@ export interface UserProfile {
   createdAt: string;
   lastLoginAt: string;
 }
-

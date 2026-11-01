@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatModifier, getAttributeModifier, getRollOutcome, rollDie } from './gameRules';
+import { formatModifier, getAttributeModifier, getRollModifier, getRollOutcome, rollDie } from './gameRules';
 
 describe('getAttributeModifier', () => {
   it.each([
@@ -25,6 +25,14 @@ describe('formatModifier', () => {
     expect(formatModifier(2)).toBe('+2');
     expect(formatModifier(0)).toBe('0');
     expect(formatModifier(-1)).toBe('-1');
+  });
+});
+
+describe('getRollModifier', () => {
+  it('adds circumstance modifiers to the Dungeon World attribute modifier', () => {
+    expect(getRollModifier(16, -1)).toBe(1);
+    expect(getRollModifier(8, 2)).toBe(1);
+    expect(getRollModifier(12)).toBe(0);
   });
 });
 
