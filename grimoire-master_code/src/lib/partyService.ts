@@ -5,8 +5,12 @@ import {
   doc,
   Firestore,
   getDoc,
+  getDocs,
+  query,
   runTransaction,
   setDoc,
+  updateDoc,
+  where,
   writeBatch,
 } from 'firebase/firestore';
 import {
@@ -14,6 +18,7 @@ import {
   Party,
   PartyCharacterSnapshot,
   PartyInvitation,
+  PartyMember,
   PublicUserHandle,
 } from '../types';
 
@@ -80,6 +85,7 @@ export async function createParty(
     gmUid: user.uid,
     gmDisplayName: user.displayName || user.email?.split('@')[0] || 'Master',
     objective: objective.trim(),
+    status: 'active',
     createdAt: now(),
     updatedAt: now(),
   };
@@ -267,4 +273,109 @@ export async function unlinkCharacterFromParty(
   batch.update(doc(db, 'parties', partyId, 'members', userUid), { characterId: deleteField() });
   batch.delete(doc(db, 'parties', partyId, 'roster', characterId));
   await batch.commit();
+}
+
+export async function removePartyMember(
+  db: Firestore,
+  partyId: string,
+  member: PartyMember,
+): Promise<void> {
+  const batch = writeBatch(db);
+  if (member.characterId) {
+    batch.update(doc(db, 'characters', member.characterId), { partyId: deleteField() });
+    batch.delete(doc(db, 'parties', partyId, 'roster', member.characterId));
+  }
+  batch.delete(doc(db, 'parties', partyId, 'members', member.uid));
+  batch.delete(doc(db, 'users', member.uid, 'partyMemberships', partyId));
+  await batch.commit();
+}
+
+export async function setPartyPaused(
+  db: Firestore,
+  partyId: string,
+  paused: boolean,
+): Promise<void> {
+  await updateDoc(doc(db, 'parties', partyId), {
+    status: paused ? 'paused' : 'active',
+    updatedAt: now(),
+  });
+}
+
+export async function deleteParty(
+  db: Firestore,
+  user: FirebaseUser,
+  party: Party,
+): Promise<void> {
+  const senderEmail = user.email?.trim().toLowerCase();
+  if (!senderEmail) {
+    throw new Error('Il tuo account non ha un indirizzo email utilizzabile per avvisare i giocatori.');
+  }
+
+  const partyRef = doc(db, 'parties', party.id);
+  const [membersSnapshot, rosterSnapshot, sessionsSnapshot, diarySnapshot, notesSnapshot, invitationsSnapshot] =
+    await Promise.all([
+      getDocs(collection(partyRef, 'members')),
+      getDocs(collection(partyRef, 'roster')),
+      getDocs(collection(partyRef, 'sessions')),
+      getDocs(collection(partyRef, 'diary')),
+      getDocs(collection(partyRef, 'gm_notes')),
+      getDocs(query(collection(db, 'party_invitations'), where('partyId', '==', party.id))),
+    ]);
+
+  const attendanceSnapshots = await Promise.all(sessionsSnapshot.docs.map((sessionSnapshot) =>
+    getDocs(collection(partyRef, 'sessions', sessionSnapshot.id, 'attendance')),
+  ));
+
+  for (const memberSnapshot of membersSnapshot.docs) {
+    await removePartyMember(db, party.id, memberSnapshot.data() as PartyMember);
+  }
+
+  const references = [
+    ...rosterSnapshot.docs.map((snapshot) => snapshot.ref),
+    ...sessionsSnapshot.docs.map((snapshot) => snapshot.ref),
+    ...attendanceSnapshots.flatMap((snapshot) => snapshot.docs.map((attendance) => attendance.ref)),
+    ...diarySnapshot.docs.map((snapshot) => snapshot.ref),
+    ...notesSnapshot.docs.map((snapshot) => snapshot.ref),
+  ];
+  for (let index = 0; index < references.length; index += 400) {
+    const batch = writeBatch(db);
+    references.slice(index, index + 400).forEach((reference) => batch.delete(reference));
+    await batch.commit();
+  }
+
+  const pendingInvitations = invitationsSnapshot.docs.filter((snapshot) =>
+    (snapshot.data() as PartyInvitation).status === 'pending',
+  );
+  for (let index = 0; index < pendingInvitations.length; index += 400) {
+    const batch = writeBatch(db);
+    pendingInvitations.slice(index, index + 400).forEach((snapshot) => {
+      batch.update(snapshot.ref, { status: 'revoked', respondedAt: now() });
+    });
+    await batch.commit();
+  }
+
+  const members = membersSnapshot.docs.map((snapshot) => snapshot.data() as PartyMember);
+  for (let index = 0; index < members.length; index += 400) {
+    const batch = writeBatch(db);
+    members.slice(index, index + 400).forEach((member) => {
+      const mailRef = doc(collection(db, 'mails'));
+      batch.set(mailRef, {
+        id: mailRef.id,
+        recipientEmail: '',
+        recipientUid: member.uid,
+        subject: `La campagna "${party.name}" è stata cancellata`,
+        content: `Il master ${party.gmDisplayName} ha cancellato la campagna "${party.name}".`,
+        senderEmail,
+        type: 'party_deleted',
+        partyId: party.id,
+        read: false,
+        createdAt: now(),
+      });
+    });
+    await batch.commit();
+  }
+
+  const deleteBatch = writeBatch(db);
+  deleteBatch.delete(partyRef);
+  await deleteBatch.commit();
 }

@@ -125,14 +125,14 @@ service cloud.firestore {
     function isValidMail(data) {
       return data.id is string && data.id.size() <= 128
         && data.recipientEmail is string && data.recipientEmail.size() <= 100
-        && (data.type == "party_invitation" || data.recipientEmail.size() > 0)
+        && (data.type == "party_invitation" || data.type == "party_deleted" || data.recipientEmail.size() > 0)
         && data.subject is string && data.subject.size() > 0 && data.subject.size() <= 200
         && data.content is string && data.content.size() > 0 && data.content.size() <= 5000
         && data.senderEmail is string && data.senderEmail.size() <= 100
         && data.type is string && (
-          data.type == "promotion" || data.type == "warning" || data.type == "party_invitation"
+          data.type == "promotion" || data.type == "warning" || data.type == "party_invitation" || data.type == "party_deleted"
         )
-        && (data.type == "party_invitation" || !data.keys().hasAll(['recipientUid']))
+        && (data.type == "party_invitation" || data.type == "party_deleted" || !data.keys().hasAll(['recipientUid']))
         && (data.type != "party_invitation" || (
           data.partyInvitationId is string && data.partyInvitationId.size() <= 128
           && isValidId(data.partyId)
@@ -140,6 +140,10 @@ service cloud.firestore {
             data.recipientEmail.size() > 0
             || data.keys().hasAll(['recipientUid']) && data.recipientUid is string && data.recipientUid.size() <= 128
           )
+        ))
+        && (data.type != "party_deleted" || (
+          isValidId(data.partyId)
+          && data.recipientUid is string && data.recipientUid.size() > 0 && data.recipientUid.size() <= 128
         ))
         && data.read is bool
         && data.createdAt is string;
@@ -205,16 +209,26 @@ service cloud.firestore {
             !existsAfter(/databases/$(database)/documents/parties/$(existingData.partyId)/members/$(request.auth.uid))
             || !getAfter(/databases/$(database)/documents/parties/$(existingData.partyId)/members/$(request.auth.uid)).data.keys().hasAll(['characterId'])
           )
+        )
+        || (
+          existingData.keys().hasAll(['partyId'])
+          && isPartyGameMaster(existingData.partyId)
+          && !incomingData.keys().hasAll(['partyId'])
+          && incomingData.diff(existingData).affectedKeys().hasOnly(['partyId'])
+          && exists(/databases/$(database)/documents/parties/$(existingData.partyId)/members/$(existingData.ownerId))
+          && get(/databases/$(database)/documents/parties/$(existingData.partyId)/members/$(existingData.ownerId)).data.characterId == characterId
+          && !existsAfter(/databases/$(database)/documents/parties/$(existingData.partyId)/members/$(existingData.ownerId))
         );
     }
 
     function isValidParty(data, partyId) {
-      return data.keys().hasOnly(['id', 'name', 'gmUid', 'gmDisplayName', 'objective', 'createdAt', 'updatedAt'])
+      return data.keys().hasOnly(['id', 'name', 'gmUid', 'gmDisplayName', 'objective', 'status', 'createdAt', 'updatedAt'])
         && data.id == partyId
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
         && data.gmUid is string && data.gmUid.size() <= 128
         && data.gmDisplayName is string && data.gmDisplayName.size() <= 100
         && data.objective is string && data.objective.size() <= 1000
+        && (!data.keys().hasAll(['status']) || data.status == 'active' || data.status == 'paused')
         && data.createdAt is string && data.createdAt.size() <= 40
         && data.updatedAt is string && data.updatedAt.size() <= 40;
     }
@@ -332,9 +346,23 @@ service cloud.firestore {
         && isValidId(characterId) 
         && isValidCharacter(incoming()) 
         && isValidPartyBinding(incoming(), existing(), characterId)
-        && incoming().ownerId == request.auth.uid 
-        && incoming().id == existing().id 
-        && incoming().ownerId == existing().ownerId;
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && (
+          (
+            incoming().ownerId == request.auth.uid
+            && isValidPartyBinding(incoming(), existing(), characterId)
+          )
+          || (
+            existing().keys().hasAll(['partyId'])
+            && isPartyGameMaster(existing().partyId)
+            && !incoming().keys().hasAll(['partyId'])
+            && incoming().diff(existing()).affectedKeys().hasOnly(['partyId'])
+            && exists(/databases/$(database)/documents/parties/$(existing().partyId)/members/$(existing().ownerId))
+            && get(/databases/$(database)/documents/parties/$(existing().partyId)/members/$(existing().ownerId)).data.characterId == characterId
+            && !existsAfter(/databases/$(database)/documents/parties/$(existing().partyId)/members/$(existing().ownerId))
+          )
+        );
         
       allow delete: if isSignedIn() 
         && !isBanned()
@@ -364,6 +392,8 @@ service cloud.firestore {
         && isPartyGameMaster(partyId)
         && isValidParty(incoming(), partyId)
         && incoming().gmUid == existing().gmUid;
+
+      allow delete: if isSignedIn() && !isBanned() && isPartyGameMaster(partyId);
 
       match /members/{memberUid} {
         allow read: if isSignedIn()
@@ -466,6 +496,8 @@ service cloud.firestore {
           && isValidPartySession(incoming(), sessionId)
           && incoming().createdAt == existing().createdAt;
 
+        allow delete: if isSignedIn() && !isBanned() && isPartyGameMaster(partyId);
+
         match /attendance/{memberUid} {
           allow read: if isSignedIn()
             && !isBanned()
@@ -476,6 +508,8 @@ service cloud.firestore {
             && memberUid == request.auth.uid
             && isPartyMember(partyId)
             && isValidPartyAttendance(incoming(), memberUid);
+
+          allow delete: if isSignedIn() && !isBanned() && isPartyGameMaster(partyId);
         }
       }
 
@@ -712,6 +746,11 @@ service cloud.firestore {
         && (
           isMasterAdmin()
           || (
+            incoming().type == 'party_deleted'
+            && incoming().senderEmail.lower() == request.auth.token.email.lower()
+            && isPartyGameMaster(incoming().partyId)
+          )
+          || (
             incoming().type == 'party_invitation'
             && incoming().senderEmail.lower() == request.auth.token.email.lower()
             && isPartyGameMaster(incoming().partyId)
@@ -727,6 +766,7 @@ service cloud.firestore {
           )
           || (
             incoming().type != 'party_invitation'
+            && incoming().type != 'party_deleted'
             && incoming().senderEmail.lower() == request.auth.token.email.lower()
           )
         );
@@ -752,6 +792,14 @@ service cloud.firestore {
             !existing().keys().hasAll(['recipientUid'])
             || incoming().recipientUid == existing().recipientUid
           )
+          && incoming().senderEmail == existing().senderEmail
+          && incoming().type == existing().type
+          && incoming().diff(existing()).affectedKeys().hasOnly(['read'])
+        ))
+        && (resource.data.type != 'party_deleted' || (
+          incoming().partyId == existing().partyId
+          && incoming().recipientEmail == existing().recipientEmail
+          && incoming().recipientUid == existing().recipientUid
           && incoming().senderEmail == existing().senderEmail
           && incoming().type == existing().type
           && incoming().diff(existing()).affectedKeys().hasOnly(['read'])

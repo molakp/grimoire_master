@@ -1,14 +1,15 @@
-import { useState, useMemo, useEffect, FormEvent } from 'react';
+import { useState, useMemo, useEffect, useRef, FormEvent } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { CharacterTemplate, Character, Mail, PartyInvitation, BannedUser, Admin, UserProfile } from '../types';
 import { COMMUNITY_CHARACTERS } from '../data';
 import { db } from '../firebase';
 import { useTemplates } from '../hooks/useTemplates';
-import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, ArrowLeft, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Skull, AlertCircle, Users, X, ScrollText, Edit3 } from 'lucide-react';
+import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, ArrowLeft, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Users, X, ScrollText, Edit3, Settings } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import AdminCourt from './AdminCourt';
 import CharacterCreationWizard from './CharacterCreationWizard';
 import PartyHub from './PartyHub';
+import AccountSettings from './AccountSettings';
 import { respondToPartyInvitation } from '../lib/partyService';
 import { notify } from './NotificationSystem';
 
@@ -45,6 +46,9 @@ interface DashboardProps {
   onDeleteCommunityCharacter: (commId: string) => Promise<void>;
 }
 
+type DashboardTab = 'library' | 'my-characters' | 'party' | 'court' | 'settings';
+type MainDashboardTab = Exclude<DashboardTab, 'settings'>;
+
 const _mailAge = (iso: string): string => {
   const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3600000);
   const d = Math.floor(h / 24);
@@ -54,7 +58,7 @@ const _mailAge = (iso: string): string => {
   return `${d}G FA`;
 };
 const _mailSender = (m: { type: string }) =>
-  m.type === 'warning' ? 'Consiglio Arcante' : m.type === 'party_invitation' ? 'Invito al Party' : 'Gilda del Grimorio';
+  m.type === 'warning' ? 'Consiglio Arcante' : m.type === 'party_invitation' ? 'Invito al Party' : m.type === 'party_deleted' ? 'Avviso campagna' : 'Gilda del Grimorio';
 const _DECKLE =
   'polygon(0% 0%,5% 1%,10% 0%,15% 2%,20% 0%,25% 1%,30% 0%,35% 2%,40% 0%,45% 1%,50% 0%,55% 2%,60% 0%,65% 1%,70% 0%,75% 2%,80% 0%,85% 1%,90% 0%,95% 2%,100% 0%,100% 100%,95% 98%,90% 100%,85% 99%,80% 100%,75% 98%,70% 100%,65% 99%,60% 100%,55% 98%,50% 100%,45% 99%,40% 100%,35% 98%,30% 100%,25% 99%,20% 100%,15% 98%,10% 100%,5% 99%,0% 100%)';
 
@@ -89,7 +93,11 @@ export default function Dashboard({
   onPublishCommunityCharacter,
   onDeleteCommunityCharacter,
 }: DashboardProps) {
-  const [activeTab, setActiveTab] = useState<'library' | 'my-characters' | 'party' | 'court'>('my-characters');
+  const [activeTab, setActiveTab] = useState<DashboardTab>('my-characters');
+  const [settingsReturnTab, setSettingsReturnTab] = useState<MainDashboardTab>('my-characters');
+  const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
+  const accountButtonRef = useRef<HTMLButtonElement>(null);
+  const accountDrawerRef = useRef<HTMLElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [classFilter, setClassFilter] = useState('All Classes');
   const [minLevelFilter, setMinLevelFilter] = useState('Level 1');
@@ -107,6 +115,59 @@ export default function Dashboard({
   const [selectedInvitationStatus, setSelectedInvitationStatus] = useState<PartyInvitation['status'] | null>(null);
   const closeMailbox = () => { setIsMailboxOpen(false); setSelectedMail(null); setMobileMailDetail(false); };
   const openMailItem = (mail: Mail) => { setSelectedMail(mail); setMobileMailDetail(true); if (!mail.read) onMarkMailRead(mail.id); };
+
+  useEffect(() => {
+    if (!isAccountDrawerOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const getFocusableElements = (): HTMLElement[] => Array.from(
+      accountDrawerRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    );
+    getFocusableElements()[0]?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsAccountDrawerOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const focusableElements = getFocusableElements();
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      if (!firstElement || !lastElement) return;
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [isAccountDrawerOpen]);
+
+  const openAccountSettings = () => {
+    if (activeTab !== 'settings') setSettingsReturnTab(activeTab);
+    setActiveTab('settings');
+    setIsAccountDrawerOpen(false);
+  };
+  const closeAccountSettings = () => setActiveTab(settingsReturnTab);
+  const signOutFromAccountDrawer = () => {
+    setIsAccountDrawerOpen(false);
+    setActiveTab('my-characters');
+    onSignOut();
+  };
 
   useEffect(() => {
     if (selectedMail?.type !== 'party_invitation' || !selectedMail.partyInvitationId) {
@@ -393,7 +454,16 @@ export default function Dashboard({
                     {currentUser.displayName || currentUser.email?.split('@')[0]}
                   </span>
                 </div>
-                <div className="w-9 h-9 rounded-full border border-primary/40 overflow-hidden shadow-[0_0_8px_rgba(242,202,80,0.15)]">
+                <button
+                  ref={accountButtonRef}
+                  type="button"
+                  aria-label="Apri menu account"
+                  aria-haspopup="dialog"
+                  aria-expanded={isAccountDrawerOpen}
+                  aria-controls="account-drawer"
+                  onClick={() => setIsAccountDrawerOpen(true)}
+                  className="w-9 h-9 rounded-full border border-primary/40 overflow-hidden shadow-[0_0_8px_rgba(242,202,80,0.15)] transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
                   {currentUser.photoURL ? (
                     <img src={currentUser.photoURL} alt="User Avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                   ) : (
@@ -401,14 +471,6 @@ export default function Dashboard({
                       {currentUser.email?.charAt(0).toUpperCase()}
                     </div>
                   )}
-                </div>
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  title="Disconnetti"
-                  className="p-1.5 rounded hover:bg-surface-container-highest text-on-surface-variant hover:text-red-400 transition-colors"
-                >
-                  <LogOut size={16} />
                 </button>
               </div>
             ) : (
@@ -425,9 +487,76 @@ export default function Dashboard({
         </div>
       </header>
 
+      {isAccountDrawerOpen && currentUser && (
+        <div className="fixed inset-0 z-[10020]">
+          <button
+            type="button"
+            aria-label="Chiudi menu account"
+            onClick={() => setIsAccountDrawerOpen(false)}
+            className="absolute inset-0 h-full w-full bg-black/70 backdrop-blur-sm"
+          />
+          <aside
+            ref={accountDrawerRef}
+            id="account-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="account-drawer-title"
+            className="absolute inset-y-0 right-0 z-10 flex h-dvh w-full max-w-sm flex-col border-l border-outline-variant bg-surface-container-low shadow-2xl"
+          >
+            <header className="flex items-center justify-between border-b border-outline-variant p-5">
+              <h2 id="account-drawer-title" className="font-serif text-xl text-primary">Menu account</h2>
+              <button
+                type="button"
+                aria-label="Chiudi menu account"
+                onClick={() => setIsAccountDrawerOpen(false)}
+                className="rounded-full p-2 text-on-surface-variant transition hover:bg-surface-container-high hover:text-primary"
+              >
+                <X size={20} />
+              </button>
+            </header>
+            <div className="flex items-center gap-3 border-b border-outline-variant p-5">
+              <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-primary/40">
+                {currentUser.photoURL ? (
+                  <img src={currentUser.photoURL} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-primary/25 text-sm font-bold text-primary">
+                    {currentUser.email?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-on-surface">{currentUser.displayName || currentUser.email?.split('@')[0]}</p>
+                <p className="truncate text-sm text-on-surface-variant">{currentUser.email}</p>
+              </div>
+            </div>
+            <nav aria-label="Opzioni account" className="space-y-2 p-4">
+              <button
+                type="button"
+                onClick={openAccountSettings}
+                className="flex w-full items-center gap-3 rounded-lg border border-outline-variant bg-surface-container p-4 text-left text-on-surface transition hover:border-primary/60 hover:bg-surface-container-high"
+              >
+                <Settings size={18} className="text-primary" />
+                <span className="flex-1">Impostazioni</span>
+                <ArrowRight size={16} className="text-on-surface-variant" />
+              </button>
+              <button
+                type="button"
+                onClick={signOutFromAccountDrawer}
+                className="flex w-full items-center gap-3 rounded-lg border border-outline-variant p-4 text-left text-red-300 transition hover:border-red-400/60 hover:bg-red-950/20"
+              >
+                <LogOut size={18} />
+                <span>Esci dall’account</span>
+              </button>
+            </nav>
+          </aside>
+        </div>
+      )}
+
       <main className="max-w-7xl mx-auto px-6 py-12 space-y-16 pb-24 md:pb-12">
         
-        {activeTab === 'party' ? (
+        {activeTab === 'settings' ? (
+          <AccountSettings currentUser={currentUser} onBack={closeAccountSettings} />
+        ) : activeTab === 'party' ? (
           <PartyHub
             currentUser={currentUser}
             myCharacters={myCharacters}
@@ -987,7 +1116,7 @@ export default function Dashboard({
                       >
                         <div className="flex items-start gap-3">
                           <div className="md:hidden flex-shrink-0 w-11 h-11 rounded-lg bg-surface-container-high border border-primary/30 flex items-center justify-center text-xl">
-                            {mail.type === 'warning' ? '⚔️' : mail.type === 'party_invitation' ? '🛡️' : '📜'}
+                            {mail.type === 'warning' ? '⚔️' : mail.type === 'party_invitation' ? '🛡️' : mail.type === 'party_deleted' ? '🏕️' : '📜'}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start gap-1 mb-0.5">

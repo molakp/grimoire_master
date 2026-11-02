@@ -8,7 +8,7 @@ import {
   initializeTestEnvironment,
   RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, query, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
 
 let testEnv: RulesTestEnvironment;
 
@@ -206,6 +206,18 @@ describe('parties', () => {
     await assertFails(updateDoc(doc(asUser(ALICE), 'parties/p1'), { gmUid: BOB.uid }));
     await assertFails(setDoc(doc(asUser(BOB), 'parties/p2'), party('p2', ALICE.uid)));
   });
+
+  it('lets only the game master pause and delete their campaign', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'parties/p1'), party('p1', ALICE.uid));
+    });
+
+    await assertFails(updateDoc(doc(asUser(BOB), 'parties/p1'), { status: 'paused' }));
+    await assertSucceeds(updateDoc(doc(asUser(ALICE), 'parties/p1'), { status: 'paused' }));
+    await assertFails(deleteDoc(doc(asUser(BOB), 'parties/p1')));
+    await assertSucceeds(deleteDoc(doc(asUser(ALICE), 'parties/p1')));
+  });
+
 });
 
 describe('party invitations', () => {
@@ -318,6 +330,38 @@ describe('party invitations', () => {
 });
 
 describe('party character sharing and private notes', () => {
+  it('lets the game master remove a player and atomically unlink their character', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'parties/p1'), party('p1', ALICE.uid));
+      await setDoc(doc(db, 'parties/p1/members/bob'), {
+        uid: BOB.uid,
+        role: 'player',
+        status: 'active',
+        displayName: 'Bob',
+        characterId: 'bob_char',
+        invitationId: 'invite1',
+        joinedAt: new Date().toISOString(),
+      });
+      await setDoc(doc(db, 'parties/p1/roster/bob_char'), partyCharacterSnapshot('bob_char', BOB.uid));
+      await setDoc(doc(db, 'users/bob/partyMemberships/p1'), {
+        partyId: 'p1', role: 'player', invitationId: 'invite1', joinedAt: new Date().toISOString(),
+      });
+      await setDoc(doc(db, 'characters/bob_char'), character('bob_char', BOB.uid, { partyId: 'p1' }));
+    });
+
+    const db = asUser(ALICE);
+    const removal = writeBatch(db);
+    removal.update(doc(db, 'characters/bob_char'), { partyId: deleteField() });
+    removal.delete(doc(db, 'parties/p1/members/bob'));
+    removal.delete(doc(db, 'parties/p1/roster/bob_char'));
+    removal.delete(doc(db, 'users/bob/partyMemberships/p1'));
+    await assertSucceeds(removal.commit());
+    await assertFails(getDoc(doc(asUser(BOB), 'parties/p1')));
+    const membership = await getDoc(doc(asUser(BOB), 'users/bob/partyMemberships/p1'));
+    if (membership.exists()) throw new Error('Removed player still has a campaign membership.');
+  });
+
   it('shares only the roster projection with party members and keeps master notes private', async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       const db = ctx.firestore();
@@ -507,5 +551,38 @@ describe('mails', () => {
   it('prevents users from impersonating another sender', async () => {
     await assertFails(setDoc(doc(asUser(BOB), 'mails/m2'), mail('m2', ALICE.email, MASTER.email)));
     await assertSucceeds(setDoc(doc(asMaster(), 'mails/m3'), mail('m3', ALICE.email, MASTER.email)));
+  });
+
+  it('lets a campaign master send a deletion notice to a party member', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'parties/p1'), party('p1', ALICE.uid));
+    });
+
+    await assertSucceeds(setDoc(doc(asUser(ALICE), 'mails/campaign_deleted'), {
+      id: 'campaign_deleted',
+      recipientEmail: '',
+      recipientUid: BOB.uid,
+      subject: 'La campagna è stata cancellata',
+      content: 'Il master ha cancellato la campagna.',
+      senderEmail: ALICE.email,
+      type: 'party_deleted',
+      partyId: 'p1',
+      read: false,
+      createdAt: new Date().toISOString(),
+    }));
+    await assertSucceeds(getDoc(doc(asUser(BOB), 'mails/campaign_deleted')));
+    await assertFails(getDoc(doc(asUser(ALICE), 'mails/campaign_deleted')));
+    await assertFails(setDoc(doc(asUser(BOB), 'mails/fake_campaign_deleted'), {
+      id: 'fake_campaign_deleted',
+      recipientEmail: '',
+      recipientUid: ALICE.uid,
+      subject: 'Falso avviso',
+      content: 'Non autorizzato.',
+      senderEmail: BOB.email,
+      type: 'party_deleted',
+      partyId: 'p1',
+      read: false,
+      createdAt: new Date().toISOString(),
+    }));
   });
 });

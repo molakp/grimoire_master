@@ -11,7 +11,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { User as FirebaseUser } from 'firebase/auth';
-import { ArrowLeft, CalendarDays, Check, ChevronRight, Crown, LockKeyhole, Mail, Plus, Send, Shield, Users } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Check, ChevronRight, Crown, LockKeyhole, Mail, Pause, Play, Plus, Send, Settings, Shield, Trash2, UserMinus, Users } from 'lucide-react';
 import { db } from '../firebase';
 import {
   Character,
@@ -26,9 +26,11 @@ import {
 } from '../types';
 import {
   createParty,
-  claimPublicHandle,
+  deleteParty,
   linkCharacterToParty,
+  removePartyMember,
   sendPartyInvitation,
+  setPartyPaused,
   unlinkCharacterFromParty,
 } from '../lib/partyService';
 import { notify } from './NotificationSystem';
@@ -72,13 +74,10 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
   const [attendance, setAttendance] = useState<PartyAttendance[]>([]);
   const [diary, setDiary] = useState<PartyDiaryEntry[]>([]);
   const [masterNotes, setMasterNotes] = useState<PartyMasterNote[]>([]);
-  const [activeBoard, setActiveBoard] = useState<'party' | 'sessions'>('party');
+  const [activeBoard, setActiveBoard] = useState<'party' | 'sessions' | 'settings'>('party');
   const [isPlayerPreview, setIsPlayerPreview] = useState(false);
   const [newPartyName, setNewPartyName] = useState('');
   const [newPartyObjective, setNewPartyObjective] = useState('');
-  const [userHandle, setUserHandle] = useState('');
-  const [handleDraft, setHandleDraft] = useState('');
-  const [isSavingHandle, setIsSavingHandle] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [sessionTitle, setSessionTitle] = useState('');
   const [sessionDate, setSessionDate] = useState('');
@@ -109,12 +108,6 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
       setOwnedParties(snapshot.docs.map((partyDoc) => ({ ...partyDoc.data(), id: partyDoc.id }) as Party));
     }, report);
 
-    const profileUnsubscribe = onSnapshot(doc(db, 'users', currentUser.uid), (snapshot) => {
-      const handle = snapshot.exists() ? String(snapshot.data().handle || '') : '';
-      setUserHandle(handle);
-      setHandleDraft(handle);
-    }, report);
-
     const membershipsQuery = query(
       collection(db, 'users', currentUser.uid, 'partyMemberships'),
       limit(20),
@@ -132,7 +125,6 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
 
     return () => {
       ownedUnsubscribe();
-      profileUnsubscribe();
       membershipsUnsubscribe();
     };
   }, [currentUser?.uid]);
@@ -245,23 +237,6 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
     }
   };
 
-  const handleSavePublicHandle = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!currentUser) return;
-    setIsSavingHandle(true);
-    try {
-      const handle = await claimPublicHandle(db, currentUser, handleDraft);
-      setUserHandle(handle);
-      setHandleDraft(handle);
-      notify.success(`Il tuo username pubblico è @${handle}.`);
-    } catch (error) {
-      console.error('Unable to claim public username:', error);
-      notify.error(errorMessage(error));
-    } finally {
-      setIsSavingHandle(false);
-    }
-  };
-
   const handleSendInvitation = async (event: FormEvent) => {
     event.preventDefault();
     if (!currentUser || !ownedParty) return;
@@ -271,6 +246,44 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
       notify.success('Invito inviato nella posta del giocatore.');
     } catch (error) {
       console.error('Unable to send Party invitation:', error);
+      notify.error(errorMessage(error));
+    }
+  };
+
+  const handleRemovePartyMember = async (member: PartyMember) => {
+    if (!selectedParty || member.uid === currentUser?.uid) return;
+    if (!window.confirm(`Rimuovere ${member.displayName} dalla campagna? Per tornare dovrà ricevere un nuovo invito.`)) return;
+    try {
+      await removePartyMember(db, selectedParty.id, member);
+      notify.success(`${member.displayName} è stato rimosso. Per tornare dovrà essere reinvitato.`);
+    } catch (error) {
+      console.error('Unable to remove Party member:', error);
+      notify.error(errorMessage(error));
+    }
+  };
+
+  const handleTogglePartyPause = async () => {
+    if (!ownedParty) return;
+    const shouldPause = ownedParty.status !== 'paused';
+    try {
+      await setPartyPaused(db, ownedParty.id, shouldPause);
+      notify.success(shouldPause ? 'La campagna è stata messa in pausa.' : 'La campagna è stata riattivata.');
+    } catch (error) {
+      console.error('Unable to update Party status:', error);
+      notify.error(errorMessage(error));
+    }
+  };
+
+  const handleDeleteParty = async () => {
+    if (!ownedParty || !currentUser) return;
+    if (!window.confirm(`Cancellare definitivamente "${ownedParty.name}"? I giocatori riceveranno un avviso nella posta. L’operazione non può essere annullata.`)) return;
+    try {
+      await deleteParty(db, currentUser, ownedParty);
+      setSelectedPartyId(null);
+      setActiveBoard('party');
+      notify.success(`La campagna "${ownedParty.name}" è stata cancellata.`);
+    } catch (error) {
+      console.error('Unable to delete Party:', error);
       notify.error(errorMessage(error));
     }
   };
@@ -410,6 +423,9 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
               {isGameMaster ? <Crown size={14} /> : <Shield size={14} />}
               {isGameMaster ? (isPlayerPreview ? 'Anteprima giocatore' : 'Tu sei il master') : 'Avventuriero'}
             </span>
+            {selectedParty.status === 'paused' && (
+              <span className="rounded-full border border-secondary/40 px-3 py-1 text-xs uppercase text-secondary">Campagna in pausa</span>
+            )}
           </div>
           {isGameMaster && (
             <nav className="mt-6 flex flex-wrap gap-2 border-t border-outline-variant pt-4">
@@ -419,6 +435,11 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
               <button onClick={() => setActiveBoard('sessions')} className={`rounded px-4 py-2 text-sm ${activeBoard === 'sessions' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}>
                 Calendario &amp; Sessioni
               </button>
+              {!isPlayerPreview && (
+                <button onClick={() => setActiveBoard('settings')} className={`inline-flex items-center gap-2 rounded px-4 py-2 text-sm ${activeBoard === 'settings' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}>
+                  <Settings size={15} /> Impostazioni
+                </button>
+              )}
               <button onClick={() => setIsPlayerPreview((preview) => !preview)} className="ml-auto rounded border border-primary/50 px-4 py-2 text-sm text-primary">
                 {isPlayerPreview ? 'Torna alla vista master' : 'Anteprima giocatore'}
               </button>
@@ -469,26 +490,6 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
 
             <aside className="space-y-6">
               <section className="rounded-xl border border-primary/30 bg-surface-container-low p-5">
-                <h3 className="font-serif text-xl text-primary">Convoca un avventuriero</h3>
-                <p className="mt-1 text-sm text-on-surface-variant">L’invito arriverà nella posta già presente nell’app.</p>
-                <form onSubmit={handleSendInvitation} className="mt-4 flex flex-col gap-3">
-                  <label className="text-xs uppercase tracking-wide text-on-surface-variant" htmlFor="party-invite-email">Username o email del giocatore</label>
-                  <input id="party-invite-email" type="text" maxLength={100} required value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="@aldor o giocatore@esempio.it" className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
-                  <button type="submit" className="inline-flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-semibold text-on-primary hover:brightness-110">
-                    <Send size={15} /> Invia invito
-                  </button>
-                </form>
-                <div className="mt-4 border-t border-outline-variant pt-3">
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">Inviti recenti</p>
-                  {invitations.length ? invitations.slice(0, 5).map((invitation) => (
-                    <p key={invitation.id} className="mt-2 flex justify-between gap-2 text-xs">
-                      <span className="truncate">{invitation.recipientEmail}</span>
-                      <span className={invitation.status === 'accepted' ? 'text-emerald-400' : 'text-primary'}>{invitationStatusLabel[invitation.status]}</span>
-                    </p>
-                  )) : <p className="mt-2 text-xs text-on-surface-variant">Nessun invito inviato.</p>}
-                </div>
-              </section>
-              <section className="rounded-xl border border-outline-variant bg-surface-container-low p-5">
                 <div className="flex items-center gap-2">
                   <LockKeyhole size={16} className="text-secondary" />
                   <h3 className="font-serif text-xl text-secondary">Note riservate al master</h3>
@@ -504,7 +505,7 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
               </section>
             </aside>
           </div>
-        ) : isGameMaster && !isPlayerPreview ? (
+        ) : isGameMaster && !isPlayerPreview && activeBoard === 'sessions' ? (
           <div className="grid gap-6 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.2fr)]">
             <section className="rounded-xl border border-primary/30 bg-surface-container-low p-5">
               <h3 className="font-serif text-xl text-primary">Pianifica una seduta</h3>
@@ -515,6 +516,69 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
               </form>
             </section>
             <SessionsList sessions={sessions} selectedSessionId={selectedSessionId} setSelectedSessionId={setSelectedSessionId} attendance={attendance} members={members} />
+          </div>
+        ) : isGameMaster && !isPlayerPreview && activeBoard === 'settings' ? (
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.8fr)]">
+            <div className="space-y-6">
+              <section className="rounded-xl border border-outline-variant bg-surface-container-low p-5">
+                <h3 className="font-serif text-xl text-primary">Invita un giocatore</h3>
+                <p className="mt-1 text-sm text-on-surface-variant">L’invito arriverà nella posta dell’app. Se un giocatore viene rimosso, dovrà ricevere un nuovo invito per tornare.</p>
+                <form onSubmit={handleSendInvitation} className="mt-4 flex flex-col gap-3">
+                  <label className="text-xs uppercase tracking-wide text-on-surface-variant" htmlFor="party-invite-email">Username o email del giocatore</label>
+                  <input id="party-invite-email" type="text" maxLength={100} required value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="@aldor o giocatore@esempio.it" className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
+                  <button type="submit" className="inline-flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-semibold text-on-primary hover:brightness-110">
+                    <Send size={15} /> Invia invito
+                  </button>
+                </form>
+                <div className="mt-4 border-t border-outline-variant pt-3">
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-on-surface-variant">Inviti recenti</p>
+                  {invitations.length ? invitations.slice(0, 5).map((invitation) => (
+                    <p key={invitation.id} className="mt-2 flex justify-between gap-2 text-xs">
+                      <span className="truncate">{invitation.recipientEmail || invitation.recipientUid}</span>
+                      <span className={invitation.status === 'accepted' ? 'text-emerald-400' : 'text-primary'}>{invitationStatusLabel[invitation.status]}</span>
+                    </p>
+                  )) : <p className="mt-2 text-xs text-on-surface-variant">Nessun invito inviato.</p>}
+                </div>
+              </section>
+              <section className="rounded-xl border border-outline-variant bg-surface-container-low p-5">
+                <h3 className="font-serif text-xl text-primary">Giocatori della campagna</h3>
+                <div className="mt-4 space-y-3">
+                  {partyMembers.map(({ member, character }) => (
+                    <article key={member.uid} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface-container p-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-on-surface">{member.displayName}</p>
+                        <p className="text-xs text-on-surface-variant">{character ? `${character.name} · ${character.class} · Lv ${character.level}` : 'Nessun personaggio collegato'}</p>
+                      </div>
+                      <button onClick={() => void handleRemovePartyMember(member)} className="inline-flex items-center gap-2 rounded border border-outline-variant px-3 py-2 text-sm text-on-surface-variant hover:border-error hover:text-error">
+                        <UserMinus size={15} /> Rimuovi
+                      </button>
+                    </article>
+                  ))}
+                  {partyMembers.length === 0 && <p className="text-sm text-on-surface-variant">Nessun giocatore nella campagna.</p>}
+                </div>
+              </section>
+            </div>
+            <aside className="space-y-6">
+              <section className="rounded-xl border border-outline-variant bg-surface-container-low p-5">
+                <h3 className="font-serif text-xl text-primary">Stato della campagna</h3>
+                <p className="mt-2 text-sm text-on-surface-variant">
+                  {ownedParty?.status === 'paused'
+                    ? 'La campagna è in pausa. Lo stato è informativo: le funzioni restano disponibili.'
+                    : 'La campagna è attiva.'}
+                </p>
+                <button onClick={() => void handleTogglePartyPause()} className="mt-4 inline-flex items-center gap-2 rounded border border-primary/50 px-4 py-2 text-sm text-primary hover:bg-primary/10">
+                  {ownedParty?.status === 'paused' ? <Play size={15} /> : <Pause size={15} />}
+                  {ownedParty?.status === 'paused' ? 'Riattiva campagna' : 'Metti in pausa'}
+                </button>
+              </section>
+              <section className="rounded-xl border border-error/40 bg-surface-container-low p-5">
+                <h3 className="font-serif text-xl text-error">Zona pericolosa</h3>
+                <p className="mt-2 text-sm text-on-surface-variant">La cancellazione è definitiva. Ogni giocatore della campagna riceverà un avviso nella posta dell’app.</p>
+                <button onClick={() => void handleDeleteParty()} className="mt-4 inline-flex items-center gap-2 rounded border border-error/50 bg-error/10 px-4 py-2 text-sm font-semibold text-error hover:bg-error/20">
+                  <Trash2 size={15} /> Cancella campagna
+                </button>
+              </section>
+            </aside>
           </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.8fr)]">
@@ -609,11 +673,6 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
           </div>
         )}
 
-        {isGameMaster && !isPlayerPreview && activeBoard === 'sessions' && (
-          <section className="rounded-xl border border-outline-variant bg-surface-container-low p-5">
-            <SessionsList sessions={sessions} selectedSessionId={selectedSessionId} setSelectedSessionId={setSelectedSessionId} attendance={attendance} members={members} />
-          </section>
-        )}
       </section>
     );
   }
@@ -628,37 +687,40 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
         <p className="text-sm text-on-surface-variant">Le campagne che dirigi e quelle in cui giochi.</p>
       </header>
 
-      <form onSubmit={handleCreateParty} className="grid gap-3 rounded-xl border border-primary/30 bg-surface-container-low p-5 md:grid-cols-[1fr_1.4fr_auto] md:items-end">
-        <label className="text-xs uppercase tracking-wide text-on-surface-variant">Nome della spedizione
-          <input required maxLength={100} value={newPartyName} onChange={(event) => setNewPartyName(event.target.value)} placeholder="Es. I Custodi della Fiamma" className="mt-1 block w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
-        </label>
-        <label className="text-xs uppercase tracking-wide text-on-surface-variant">Obiettivo condiviso
-          <input maxLength={1000} value={newPartyObjective} onChange={(event) => setNewPartyObjective(event.target.value)} placeholder="Cosa vuole ottenere il Party?" className="mt-1 block w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
-        </label>
-        <button type="submit" className="inline-flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-semibold text-on-primary"><Plus size={16} /> Crea Party</button>
-      </form>
+      <section className="space-y-5">
+        <div>
+          <h3 className="font-serif text-2xl text-on-surface">Le tue campagne</h3>
+          <p className="mt-1 text-sm text-on-surface-variant">Apri una spedizione per gestirla o riprendere da dove eri rimasto.</p>
+        </div>
+        <div className="grid gap-8 xl:grid-cols-2">
+          <section>
+            <h4 className="mb-4 flex items-center gap-2 font-serif text-xl text-primary"><Crown size={20} /> Campagne che dirigi</h4>
+            <PartyList parties={ownedParties} emptyText="Non dirigi ancora nessuna spedizione." onOpen={openParty} badge="MASTER" />
+          </section>
+          <section>
+            <h4 className="mb-4 flex items-center gap-2 font-serif text-xl text-secondary"><Users size={20} /> Campagne in cui giochi</h4>
+            <PartyList parties={joinedParties.filter((party) => !ownedParties.some((owned) => owned.id === party.id))} emptyText="Non sei ancora stato arruolato in una spedizione." onOpen={openParty} badge="GIOCATORE" />
+            {joinedPartyIds.size === 0 && <p className="mt-3 flex items-center gap-2 text-xs text-on-surface-variant"><Mail size={14} /> Gli inviti ricevuti si gestiscono dalla posta dell’app.</p>}
+          </section>
+        </div>
+      </section>
 
-      <form onSubmit={handleSavePublicHandle} className="flex flex-wrap items-end gap-3 rounded-xl border border-outline-variant bg-surface-container-low p-5">
-        <label className="min-w-[220px] flex-1 text-xs uppercase tracking-wide text-on-surface-variant">Il tuo username pubblico
-          <input required minLength={3} maxLength={20} value={handleDraft} onChange={(event) => setHandleDraft(event.target.value.replace(/^@/, ''))} placeholder="es. aldor_il_saggio" className="mt-1 block w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
-        </label>
-        <button type="submit" disabled={isSavingHandle || handleDraft.trim().toLowerCase() === userHandle} className="rounded border border-primary/50 px-4 py-2 text-sm text-primary disabled:cursor-not-allowed disabled:opacity-50">
-          {isSavingHandle ? 'Salvataggio…' : userHandle ? 'Aggiorna username' : 'Scegli username'}
-        </button>
-        <p className="w-full text-xs text-on-surface-variant">Gli altri giocatori vedranno questo nome per invitarti; la tua email non sarà pubblicata.</p>
-      </form>
+      <details className="group rounded-xl border border-outline-variant bg-surface-container-low">
+        <summary className="flex cursor-pointer list-none items-center gap-2 p-4 font-semibold text-on-surface marker:hidden">
+          <Plus size={18} className="text-primary" />
+          Crea una nuova campagna
+        </summary>
+        <form onSubmit={handleCreateParty} className="grid gap-3 border-t border-outline-variant p-5 md:grid-cols-[1fr_1.4fr_auto] md:items-end">
+          <label className="text-xs uppercase tracking-wide text-on-surface-variant">Nome della spedizione
+            <input required maxLength={100} value={newPartyName} onChange={(event) => setNewPartyName(event.target.value)} placeholder="Es. I Custodi della Fiamma" className="mt-1 block w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
+          </label>
+          <label className="text-xs uppercase tracking-wide text-on-surface-variant">Obiettivo condiviso
+            <input maxLength={1000} value={newPartyObjective} onChange={(event) => setNewPartyObjective(event.target.value)} placeholder="Cosa vuole ottenere il Party?" className="mt-1 block w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
+          </label>
+          <button type="submit" className="inline-flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-semibold text-on-primary"><Plus size={16} /> Crea Party</button>
+        </form>
+      </details>
 
-      <div className="grid gap-8 xl:grid-cols-2">
-        <section>
-          <h3 className="mb-4 flex items-center gap-2 font-serif text-2xl text-primary"><Crown size={20} /> Campagne che dirigi</h3>
-          <PartyList parties={ownedParties} emptyText="Non dirigi ancora nessuna spedizione." onOpen={openParty} badge="MASTER" />
-        </section>
-        <section>
-          <h3 className="mb-4 flex items-center gap-2 font-serif text-2xl text-secondary"><Users size={20} /> Campagne in cui giochi</h3>
-          <PartyList parties={joinedParties.filter((party) => !ownedParties.some((owned) => owned.id === party.id))} emptyText="Non sei ancora stato arruolato in una spedizione." onOpen={openParty} badge="GIOCATORE" />
-          {joinedPartyIds.size === 0 && <p className="mt-3 flex items-center gap-2 text-xs text-on-surface-variant"><Mail size={14} /> Gli inviti ricevuti si gestiscono dalla posta dell’app.</p>}
-        </section>
-      </div>
     </section>
   );
 }
@@ -677,9 +739,13 @@ function PartyList({ parties, emptyText, onOpen, badge }: {
           <span className="font-mono text-[10px] uppercase tracking-widest text-primary">{badge}</span>
           <span className="mt-1 flex items-center justify-between gap-3">
             <strong className="font-serif text-xl text-on-surface">{party.name}</strong>
+            <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] uppercase ${party.status === 'paused' ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary'}`}>
+              {party.status === 'paused' ? 'In pausa' : 'Attiva'}
+            </span>
             <ChevronRight size={18} className="shrink-0 text-primary" />
           </span>
           <span className="mt-2 block text-sm text-on-surface-variant">{party.objective || 'Nessun obiettivo condiviso.'}</span>
+          <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">Apri campagna <ChevronRight size={16} /></span>
         </button>
       ))}
     </div>
