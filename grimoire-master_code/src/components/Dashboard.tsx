@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, FormEvent } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { CharacterTemplate, Character, Spell, Mail, PartyInvitation, BannedUser, Admin, UserProfile } from '../types';
+import { CharacterTemplate, Character, Mail, PartyInvitation, BannedUser, Admin, UserProfile } from '../types';
 import { COMMUNITY_CHARACTERS } from '../data';
 import { db } from '../firebase';
 import { useTemplates } from '../hooks/useTemplates';
