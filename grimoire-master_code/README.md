@@ -25,11 +25,18 @@ Character sheets organize play information into **Stats**, **Spells**, **Moves**
 
 The floating dice roller supports Dungeon World-style **2d6 + modifier** action rolls, including a preset modifier from a selected character stat. Results are classified as success (10+), mixed (7–9), or miss (6 or less). It also rolls a selected damage die (D4, D6, D8, D10, D12, or D20). Roll history is held in the current app session and can be cleared.
 
+### Party campaigns
+
+- Signed-in users can create campaigns, claim a unique public username, invite players by username or email from the Party area, link one of their characters to a campaign, plan sessions, and share diary entries.
+- Party invitations are sent from campaign management and received in the existing in-app mailbox, where players accept or decline them; username invitations are routed by account UID without exposing the recipient's email.
+- Game masters see the campaign roster and private notes. Other members see only the character information explicitly projected to the shared roster; full character sheets remain owner-only.
+- A character can be linked to only one campaign at a time. Players can confirm or decline session attendance from their campaign view.
+
 ### Accounts, community, and administration
 
 - **Google sign-in** enables a personal Firebase-backed character collection. Without signing in, characters are stored in the browser's `localStorage` and are not available on other devices.
 - Signed-in users can publish characters to the shared board and manage their own published entries. Community entries can also be moderated by an administrator.
-- The in-app mailbox displays promotion and warning messages and marks messages read when opened.
+- The in-app mailbox displays promotion, warning, and Party invitation messages and marks messages read when opened.
 - The **Court** administration area is shown to the master administrator. It supports user and administrator lists, administrator promotion and removal, user bans and unbans, and warning messages.
 - Authorized administrators can manage official character templates from the library.
 
@@ -54,9 +61,11 @@ src/
   firebase.ts                Firebase initialization and authentication helpers
   types.ts                   Character, template, spell, and account data types
   lib/gameRules.ts           Dungeon World rules: attribute modifiers, roll outcomes, dice
+  lib/partyService.ts        Party creation, invitation, character-link, and inbox actions
   hooks/useTemplates.ts      Template loading and local fallback
   components/
     Dashboard.tsx            Character archive, library, mailbox, and admin entry points
+    PartyHub.tsx             Party hub, master board, player view, sessions, and diary
     CharacterCreationWizard.tsx
     CharacterSheet.tsx       Character tabs and editing
     Spellbook.tsx
