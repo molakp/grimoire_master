@@ -132,7 +132,7 @@ export interface Mail {
   subject: string;
   content: string;
   senderEmail: string;
-  type: 'promotion' | 'warning' | 'party_invitation';
+  type: 'promotion' | 'warning' | 'party_invitation' | 'party_deleted';
   partyInvitationId?: string;
   partyId?: string;
   recipientUid?: string;
@@ -146,6 +146,7 @@ export interface Party {
   gmUid: string;
   gmDisplayName: string;
   objective: string;
+  status?: 'active' | 'paused';
   createdAt: string;
   updatedAt: string;
 }

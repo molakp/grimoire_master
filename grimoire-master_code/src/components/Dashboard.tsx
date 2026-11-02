@@ -58,7 +58,7 @@ const _mailAge = (iso: string): string => {
   return `${d}G FA`;
 };
 const _mailSender = (m: { type: string }) =>
-  m.type === 'warning' ? 'Consiglio Arcante' : m.type === 'party_invitation' ? 'Invito al Party' : 'Gilda del Grimorio';
+  m.type === 'warning' ? 'Consiglio Arcante' : m.type === 'party_invitation' ? 'Invito al Party' : m.type === 'party_deleted' ? 'Avviso campagna' : 'Gilda del Grimorio';
 const _DECKLE =
   'polygon(0% 0%,5% 1%,10% 0%,15% 2%,20% 0%,25% 1%,30% 0%,35% 2%,40% 0%,45% 1%,50% 0%,55% 2%,60% 0%,65% 1%,70% 0%,75% 2%,80% 0%,85% 1%,90% 0%,95% 2%,100% 0%,100% 100%,95% 98%,90% 100%,85% 99%,80% 100%,75% 98%,70% 100%,65% 99%,60% 100%,55% 98%,50% 100%,45% 99%,40% 100%,35% 98%,30% 100%,25% 99%,20% 100%,15% 98%,10% 100%,5% 99%,0% 100%)';
 
@@ -1116,7 +1116,7 @@ export default function Dashboard({
                       >
                         <div className="flex items-start gap-3">
                           <div className="md:hidden flex-shrink-0 w-11 h-11 rounded-lg bg-surface-container-high border border-primary/30 flex items-center justify-center text-xl">
-                            {mail.type === 'warning' ? '⚔️' : mail.type === 'party_invitation' ? '🛡️' : '📜'}
+                            {mail.type === 'warning' ? '⚔️' : mail.type === 'party_invitation' ? '🛡️' : mail.type === 'party_deleted' ? '🏕️' : '📜'}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start gap-1 mb-0.5">
