@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Character, DiceRollLog, Mail, BannedUser, Admin, CharacterTemplate, UserProfile } from './types';
+import { Character, DiceRollLog, Mail, BannedUser, Admin, CharacterTemplate, UserProfile, StatModifier } from './types';
 import { INITIAL_CHARACTER_THALRIC } from './data';
 import { useTemplates } from './hooks/useTemplates';
 import Dashboard from './components/Dashboard';
@@ -13,13 +13,19 @@ import { CloudLightning } from 'lucide-react';
 // Firebase imports
 import { auth, db, logInWithGoogle, logOut, OperationType, handleFirestoreError } from './firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc, writeBatch, limit } from 'firebase/firestore';
+import { getPartyCharacterSnapshot } from './lib/partyService';
 
 export default function App() {
   const [myCharacters, setMyCharacters] = useState<Character[]>([]);
   const [activeCharacterId, setActiveCharacterId] = useState<string | null>(null);
   const [diceLogs, setDiceLogs] = useState<DiceRollLog[]>([]);
-  const [activeStatPreset, setActiveStatPreset] = useState<{ name: string; value: number } | null>(null);
+  const [activeStatPreset, setActiveStatPreset] = useState<{
+    name: string;
+    value: number;
+    additionalModifier: number;
+    appliedModifiers: Pick<StatModifier, 'name' | 'icon' | 'value'>[];
+  } | null>(null);
   const [activeCharacterTab, setActiveCharacterTab] = useState<'stats' | 'spells' | 'moves' | 'gear' | 'lore'>('stats');
 
   // Firebase auth & syncing state
@@ -169,20 +175,37 @@ export default function App() {
         activeListeners.push(charsSub);
 
         // 4. Letters (Mails) inbox list
-        const mailsQuery = query(collection(db, 'mails'), where('recipientEmail', '==', uEmail));
-        const mailsSub = onSnapshot(mailsQuery, (snapshot) => {
-          const fetchedMails: Mail[] = [];
-          snapshot.forEach((doc) => {
-            fetchedMails.push({
-              ...(doc.data() as Mail),
-              id: doc.id
-            });
-          });
-          fetchedMails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const emailMails = new Map<string, Mail>();
+        const uidMails = new Map<string, Mail>();
+        const publishMails = () => {
+          const fetchedMails = [...new Map([...emailMails.values(), ...uidMails.values()].map((mail) => [mail.id, mail])).values()]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setAllMails(fetchedMails);
-          setUnreadMails(fetchedMails.filter((m) => !m.read));
-        }, () => {});
-        activeListeners.push(mailsSub);
+          setUnreadMails(fetchedMails.filter((mail) => !mail.read));
+        };
+        const emailMailsQuery = query(collection(db, 'mails'), where('recipientEmail', '==', uEmail), limit(100));
+        const emailMailsSub = onSnapshot(emailMailsQuery, (snapshot) => {
+          emailMails.clear();
+          snapshot.forEach((mailDoc) => {
+            emailMails.set(mailDoc.id, { ...(mailDoc.data() as Mail), id: mailDoc.id });
+          });
+          publishMails();
+        }, (error) => {
+          console.error('Unable to load mailbox by email:', error);
+          notify.error('Impossibile caricare i messaggi della posta.');
+        });
+        const uidMailsQuery = query(collection(db, 'mails'), where('recipientUid', '==', firebaseUser.uid), limit(100));
+        const uidMailsSub = onSnapshot(uidMailsQuery, (snapshot) => {
+          uidMails.clear();
+          snapshot.forEach((mailDoc) => {
+            uidMails.set(mailDoc.id, { ...(mailDoc.data() as Mail), id: mailDoc.id });
+          });
+          publishMails();
+        }, (error) => {
+          console.error('Unable to load mailbox by user id:', error);
+          notify.error('Impossibile caricare i messaggi della posta.');
+        });
+        activeListeners.push(emailMailsSub, uidMailsSub);
 
         // 5. Official design patterns (dynamic template blueprints)
         const templatesSub = onSnapshot(collection(db, 'official_templates'), (snapshot) => {
@@ -222,6 +245,7 @@ export default function App() {
                 uid: data.uid,
                 email: data.email,
                 emailLower: data.emailLower || data.email.toLowerCase().trim(),
+                handle: data.handle || undefined,
                 displayName: data.displayName || '',
                 photoURL: data.photoURL || '',
                 providerIds: Array.isArray(data.providerIds) ? data.providerIds : [],
@@ -542,19 +566,35 @@ export default function App() {
   const activeCharacter = myCharacters.find((char) => char.id === activeCharacterId);
 
   // Triggering test preset rolling
-  const handleRollStat = (statName: string, statValue: number) => {
-    setActiveStatPreset({ name: statName, value: statValue });
+  const handleRollStat = (
+    statName: string,
+    statValue: number,
+    additionalModifier: number,
+    appliedModifiers: Pick<StatModifier, 'name' | 'icon' | 'value'>[],
+  ) => {
+    setActiveStatPreset({ name: statName, value: statValue, additionalModifier, appliedModifiers });
   };
 
   // CHARACTER OPERATION: Update Character (Local + Cloud Sync)
   const handleUpdateCharacter = async (updatedChar: Character) => {
     if (currentUser) {
       try {
-        await setDoc(doc(db, 'characters', updatedChar.id), {
+        const characterPayload = {
           ...updatedChar,
           ownerId: currentUser.uid,
           updatedAt: new Date().toISOString()
-        });
+        };
+        if (updatedChar.partyId) {
+          const batch = writeBatch(db);
+          batch.set(doc(db, 'characters', updatedChar.id), characterPayload);
+          batch.set(
+            doc(db, 'parties', updatedChar.partyId, 'roster', updatedChar.id),
+            getPartyCharacterSnapshot(updatedChar, currentUser.uid),
+          );
+          await batch.commit();
+        } else {
+          await setDoc(doc(db, 'characters', updatedChar.id), characterPayload);
+        }
       } catch (err) {
         handleFirestoreError(err, OperationType.WRITE, `characters/${updatedChar.id}`);
       }
@@ -567,6 +607,11 @@ export default function App() {
 
   // CHARACTER OPERATION: Delete Character (Local + Cloud Sync)
   const handleDeleteCharacter = async (charId: string) => {
+    if (myCharacters.find((character) => character.id === charId)?.partyId) {
+      notify.error('Scollega prima questo eroe dal Party per poterlo eliminare.');
+      return;
+    }
+
     // If the active card is deleted, back to dashboard
     if (activeCharacterId === charId) {
       setActiveCharacterId(null);

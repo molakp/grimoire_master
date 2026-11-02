@@ -41,6 +41,55 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/banned_users/$(request.auth.token.email.lower()));
     }
 
+    function isPartyGameMaster(partyId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/parties/$(partyId))
+        && get(/databases/$(database)/documents/parties/$(partyId)).data.gmUid == request.auth.uid;
+    }
+
+    function isPartyMember(partyId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/parties/$(partyId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/parties/$(partyId)/members/$(request.auth.uid)).data.status == "active";
+    }
+
+    function isValidPartyMember(data, memberUid) {
+      return data.keys().hasOnly([
+          'uid', 'role', 'status', 'displayName', 'characterId', 'invitationId', 'joinedAt'
+        ])
+        && data.uid == memberUid
+        && data.role == 'player'
+        && data.status == 'active'
+        && data.displayName is string && data.displayName.size() <= 100
+        && (!data.keys().hasAll(['characterId']) || data.characterId is string && data.characterId.size() <= 128)
+        && data.invitationId is string && data.invitationId.size() <= 128
+        && data.joinedAt is string && data.joinedAt.size() <= 40;
+    }
+
+    function isValidPartyInvitation(data, invitationId) {
+      return data.keys().hasOnly([
+          'id', 'partyId', 'partyName', 'recipientEmail', 'recipientUid', 'senderUid', 'senderEmail',
+          'status', 'createdAt', 'respondedAt'
+        ])
+        && data.id == invitationId
+        && isValidId(data.partyId)
+        && data.partyName is string && data.partyName.size() > 0 && data.partyName.size() <= 100
+        && data.recipientEmail is string && data.recipientEmail.size() <= 100
+        && (
+          data.recipientEmail.size() > 0
+          || data.keys().hasAll(['recipientUid'])
+        )
+        && (!data.keys().hasAll(['recipientUid']) || data.recipientUid is string && data.recipientUid.size() <= 128)
+        && data.senderUid is string && data.senderUid.size() <= 128
+        && data.senderEmail is string && data.senderEmail.size() <= 100
+        && data.status is string && (
+          data.status == 'pending' || data.status == 'accepted'
+          || data.status == 'declined' || data.status == 'revoked'
+        )
+        && data.createdAt is string && data.createdAt.size() <= 40
+        && (!data.keys().hasAll(['respondedAt']) || data.respondedAt is string && data.respondedAt.size() <= 40);
+    }
+
     // VALIDATION BLUEPRINTS (The "Anti-Update-Gaps")
     function isValidAdmin(data) {
       return data.email is string && data.email.size() <= 100
@@ -76,10 +125,22 @@ service cloud.firestore {
     function isValidMail(data) {
       return data.id is string && data.id.size() <= 128
         && data.recipientEmail is string && data.recipientEmail.size() <= 100
+        && (data.type == "party_invitation" || data.recipientEmail.size() > 0)
         && data.subject is string && data.subject.size() > 0 && data.subject.size() <= 200
         && data.content is string && data.content.size() > 0 && data.content.size() <= 5000
         && data.senderEmail is string && data.senderEmail.size() <= 100
-        && data.type is string && (data.type == "promotion" || data.type == "warning")
+        && data.type is string && (
+          data.type == "promotion" || data.type == "warning" || data.type == "party_invitation"
+        )
+        && (data.type == "party_invitation" || !data.keys().hasAll(['recipientUid']))
+        && (data.type != "party_invitation" || (
+          data.partyInvitationId is string && data.partyInvitationId.size() <= 128
+          && isValidId(data.partyId)
+          && (
+            data.recipientEmail.size() > 0
+            || data.keys().hasAll(['recipientUid']) && data.recipientUid is string && data.recipientUid.size() <= 128
+          )
+        ))
         && data.read is bool
         && data.createdAt is string;
     }
@@ -118,7 +179,139 @@ service cloud.firestore {
         && (!data.keys().hasAll(['preparedSpellNames']) || data.preparedSpellNames is list)
         && (!data.keys().hasAll(['selectedMoves']) || data.selectedMoves is list)
         && (!data.keys().hasAll(['isCustom']) || data.isCustom is bool)
+        && (!data.keys().hasAll(['partyId']) || data.partyId is string && data.partyId.size() <= 128)
         && data.ownerId is string && data.ownerId.size() <= 128;
+    }
+
+    function isValidPartyBinding(incomingData, existingData, characterId) {
+      return (
+          !incomingData.keys().hasAll(['partyId'])
+          && !existingData.keys().hasAll(['partyId'])
+        )
+        || (
+          incomingData.keys().hasAll(['partyId'])
+          && incomingData.partyId is string
+          && (
+            !existingData.keys().hasAll(['partyId'])
+            || existingData.partyId == incomingData.partyId
+          )
+          && existsAfter(/databases/$(database)/documents/parties/$(incomingData.partyId)/members/$(request.auth.uid))
+          && getAfter(/databases/$(database)/documents/parties/$(incomingData.partyId)/members/$(request.auth.uid)).data.characterId == characterId
+        )
+        || (
+          !incomingData.keys().hasAll(['partyId'])
+          && existingData.keys().hasAll(['partyId'])
+          && (
+            !existsAfter(/databases/$(database)/documents/parties/$(existingData.partyId)/members/$(request.auth.uid))
+            || !getAfter(/databases/$(database)/documents/parties/$(existingData.partyId)/members/$(request.auth.uid)).data.keys().hasAll(['characterId'])
+          )
+        );
+    }
+
+    function isValidParty(data, partyId) {
+      return data.keys().hasOnly(['id', 'name', 'gmUid', 'gmDisplayName', 'objective', 'createdAt', 'updatedAt'])
+        && data.id == partyId
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.gmUid is string && data.gmUid.size() <= 128
+        && data.gmDisplayName is string && data.gmDisplayName.size() <= 100
+        && data.objective is string && data.objective.size() <= 1000
+        && data.createdAt is string && data.createdAt.size() <= 40
+        && data.updatedAt is string && data.updatedAt.size() <= 40;
+    }
+
+    function isValidPublicHandle(data, handle) {
+      return data.keys().hasOnly(['uid', 'handle', 'displayName', 'photoURL', 'updatedAt'])
+        && data.uid is string && data.uid.size() <= 128
+        && data.handle == handle
+        && data.handle is string && data.handle.matches('^[a-z0-9_-]{3,20}$')
+        && data.displayName is string && data.displayName.size() <= 100
+        && data.photoURL is string && data.photoURL.size() <= 1000000
+        && data.updatedAt is string && data.updatedAt.size() <= 40;
+    }
+
+    function isValidUserHandleChange(incomingData, existingData, userId) {
+      return (
+          !incomingData.keys().hasAll(['handle'])
+          && !existingData.keys().hasAll(['handle'])
+        )
+        || (
+          incomingData.keys().hasAll(['handle'])
+          && existingData.keys().hasAll(['handle'])
+          && incomingData.handle == existingData.handle
+        )
+        || (
+          incomingData.keys().hasAll(['handle'])
+          && incomingData.handle is string
+          && existsAfter(/databases/$(database)/documents/public_handles/$(incomingData.handle))
+          && getAfter(/databases/$(database)/documents/public_handles/$(incomingData.handle)).data.uid == userId
+        );
+    }
+
+    function isValidPartyCharacter(data, characterId) {
+      return data.keys().hasOnly([
+          'characterId', 'ownerUid', 'name', 'class', 'level', 'avatar',
+          'attributes', 'vitality', 'armor', 'damageDie', 'gear'
+        ])
+        && data.characterId == characterId
+        && data.ownerUid is string && data.ownerUid.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.class is string && data.class.size() <= 100
+        && data.level is number && data.level >= 1 && data.level <= 100
+        && data.avatar is string && data.avatar.size() <= 1000000
+        && data.attributes is map
+        && data.attributes.keys().hasOnly(['INT', 'FOR', 'DES', 'COS', 'SAG', 'CAR'])
+        && data.attributes.keys().hasAll(['INT', 'FOR', 'DES', 'COS', 'SAG', 'CAR'])
+        && data.attributes.INT is number && data.attributes.FOR is number
+        && data.attributes.DES is number && data.attributes.COS is number
+        && data.attributes.SAG is number && data.attributes.CAR is number
+        && data.vitality is map
+        && data.vitality.keys().hasOnly(['max', 'current'])
+        && data.vitality.max is number && data.vitality.current is number
+        && data.armor is number && data.armor >= 0
+        && data.damageDie is string && data.damageDie.size() <= 10
+        && data.gear is list && data.gear.size() <= 50;
+    }
+
+    function isValidPartySession(data, sessionId) {
+      return data.keys().hasOnly([
+          'id', 'title', 'startsAt', 'timezone', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.id == sessionId
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && data.startsAt is string && data.startsAt.size() <= 40
+        && data.timezone is string && data.timezone.size() <= 64
+        && data.status is string && (
+          data.status == 'planned' || data.status == 'confirmed' || data.status == 'cancelled'
+        )
+        && data.createdAt is string && data.createdAt.size() <= 40
+        && data.updatedAt is string && data.updatedAt.size() <= 40;
+    }
+
+    function isValidPartyAttendance(data, memberUid) {
+      return data.keys().hasOnly(['uid', 'status', 'updatedAt'])
+        && data.uid == memberUid
+        && data.status is string && (
+          data.status == 'pending' || data.status == 'confirmed' || data.status == 'declined'
+        )
+        && data.updatedAt is string && data.updatedAt.size() <= 40;
+    }
+
+    function isValidPartyDiaryEntry(data, entryId) {
+      return data.keys().hasOnly(['id', 'authorUid', 'authorName', 'title', 'content', 'createdAt'])
+        && data.id == entryId
+        && data.authorUid is string && data.authorUid.size() <= 128
+        && data.authorName is string && data.authorName.size() <= 100
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && data.content is string && data.content.size() > 0 && data.content.size() <= 5000
+        && data.createdAt is string && data.createdAt.size() <= 40;
+    }
+
+    function isValidPartyMasterNote(data, noteId) {
+      return data.keys().hasOnly(['id', 'title', 'content', 'updatedAt'])
+        && data.id == noteId
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && data.content is string && data.content.size() > 0 && data.content.size() <= 5000
+        && data.updatedAt is string && data.updatedAt.size() <= 40;
     }
 
     // 1. PLAYABLE CHARACTERS
@@ -127,6 +320,7 @@ service cloud.firestore {
         && !isBanned()
         && isValidId(characterId) 
         && isValidCharacter(incoming()) 
+        && !incoming().keys().hasAll(['partyId'])
         && incoming().ownerId == request.auth.uid;
         
       allow read: if isSignedIn() 
@@ -137,6 +331,7 @@ service cloud.firestore {
         && !isBanned()
         && isValidId(characterId) 
         && isValidCharacter(incoming()) 
+        && isValidPartyBinding(incoming(), existing(), characterId)
         && incoming().ownerId == request.auth.uid 
         && incoming().id == existing().id 
         && incoming().ownerId == existing().ownerId;
@@ -144,46 +339,357 @@ service cloud.firestore {
       allow delete: if isSignedIn() 
         && !isBanned()
         && isValidId(characterId) 
-        && resource.data.ownerId == request.auth.uid;
+        && resource.data.ownerId == request.auth.uid
+        && (
+          !resource.data.keys().hasAll(['partyId'])
+          || !existsAfter(/databases/$(database)/documents/parties/$(resource.data.partyId)/members/$(request.auth.uid))
+          || !getAfter(/databases/$(database)/documents/parties/$(resource.data.partyId)/members/$(request.auth.uid)).data.keys().hasAll(['characterId'])
+        );
     }
 
-    // 2. AUTHENTICATED USER PROFILES
+    // 2. PARTY CAMPAIGNS
+    match /parties/{partyId} {
+      allow create: if isSignedIn()
+        && !isBanned()
+        && isValidId(partyId)
+        && isValidParty(incoming(), partyId)
+        && incoming().gmUid == request.auth.uid;
+
+      allow read: if isSignedIn()
+        && !isBanned()
+        && (resource.data.gmUid == request.auth.uid || isPartyMember(partyId));
+
+      allow update: if isSignedIn()
+        && !isBanned()
+        && isPartyGameMaster(partyId)
+        && isValidParty(incoming(), partyId)
+        && incoming().gmUid == existing().gmUid;
+
+      match /members/{memberUid} {
+        allow read: if isSignedIn()
+          && !isBanned()
+          && (isPartyGameMaster(partyId) || isPartyMember(partyId));
+
+        allow create: if isSignedIn()
+          && !isBanned()
+          && memberUid == request.auth.uid
+          && isValidPartyMember(incoming(), memberUid)
+          && existsAfter(/databases/$(database)/documents/party_invitations/$(incoming().invitationId))
+          && getAfter(/databases/$(database)/documents/party_invitations/$(incoming().invitationId)).data.partyId == partyId
+          && (
+            (
+              getAfter(/databases/$(database)/documents/party_invitations/$(incoming().invitationId)).data.keys().hasAll(['recipientUid'])
+              && getAfter(/databases/$(database)/documents/party_invitations/$(incoming().invitationId)).data.recipientUid == request.auth.uid
+            )
+            || (
+              !getAfter(/databases/$(database)/documents/party_invitations/$(incoming().invitationId)).data.keys().hasAll(['recipientUid'])
+              && getAfter(/databases/$(database)/documents/party_invitations/$(incoming().invitationId)).data.recipientEmail.lower() == request.auth.token.email.lower()
+            )
+          )
+          && getAfter(/databases/$(database)/documents/party_invitations/$(incoming().invitationId)).data.status == 'accepted';
+
+        allow update: if isSignedIn()
+          && !isBanned()
+          && memberUid == request.auth.uid
+          && isValidPartyMember(incoming(), memberUid)
+          && incoming().invitationId == existing().invitationId
+          && incoming().joinedAt == existing().joinedAt
+          && incoming().diff(existing()).affectedKeys().hasOnly(['characterId'])
+          && (
+            (
+              incoming().keys().hasAll(['characterId'])
+              && existsAfter(/databases/$(database)/documents/characters/$(incoming().characterId))
+              && getAfter(/databases/$(database)/documents/characters/$(incoming().characterId)).data.ownerId == request.auth.uid
+              && getAfter(/databases/$(database)/documents/characters/$(incoming().characterId)).data.partyId == partyId
+              && (
+                !existing().keys().hasAll(['characterId'])
+                || existing().characterId == incoming().characterId
+                || !existsAfter(/databases/$(database)/documents/characters/$(existing().characterId))
+                || !getAfter(/databases/$(database)/documents/characters/$(existing().characterId)).data.keys().hasAll(['partyId'])
+              )
+            )
+            || (
+              !incoming().keys().hasAll(['characterId'])
+              && existing().keys().hasAll(['characterId'])
+              && (
+                !existsAfter(/databases/$(database)/documents/characters/$(existing().characterId))
+                || !getAfter(/databases/$(database)/documents/characters/$(existing().characterId)).data.keys().hasAll(['partyId'])
+              )
+            )
+          );
+
+        allow delete: if isSignedIn()
+          && !isBanned()
+          && (isPartyGameMaster(partyId) || memberUid == request.auth.uid)
+          && (
+            !existing().keys().hasAll(['characterId'])
+            || !existsAfter(/databases/$(database)/documents/characters/$(existing().characterId))
+            || !getAfter(/databases/$(database)/documents/characters/$(existing().characterId)).data.keys().hasAll(['partyId'])
+          );
+      }
+
+      match /roster/{characterId} {
+        allow read: if isSignedIn()
+          && !isBanned()
+          && (isPartyGameMaster(partyId) || isPartyMember(partyId));
+
+        allow create, update: if isSignedIn()
+          && !isBanned()
+          && isPartyMember(partyId)
+          && isValidPartyCharacter(incoming(), characterId)
+          && incoming().ownerUid == request.auth.uid
+          && existsAfter(/databases/$(database)/documents/parties/$(partyId)/members/$(request.auth.uid))
+          && getAfter(/databases/$(database)/documents/parties/$(partyId)/members/$(request.auth.uid)).data.characterId == characterId
+          && existsAfter(/databases/$(database)/documents/characters/$(characterId))
+          && getAfter(/databases/$(database)/documents/characters/$(characterId)).data.ownerId == request.auth.uid
+          && getAfter(/databases/$(database)/documents/characters/$(characterId)).data.partyId == partyId;
+
+        allow delete: if isSignedIn()
+          && !isBanned()
+          && (isPartyGameMaster(partyId) || resource.data.ownerUid == request.auth.uid);
+      }
+
+      match /sessions/{sessionId} {
+        allow read: if isSignedIn()
+          && !isBanned()
+          && (isPartyGameMaster(partyId) || isPartyMember(partyId));
+
+        allow create: if isSignedIn()
+          && !isBanned()
+          && isPartyGameMaster(partyId)
+          && isValidId(sessionId)
+          && isValidPartySession(incoming(), sessionId);
+
+        allow update: if isSignedIn()
+          && !isBanned()
+          && isPartyGameMaster(partyId)
+          && isValidPartySession(incoming(), sessionId)
+          && incoming().createdAt == existing().createdAt;
+
+        match /attendance/{memberUid} {
+          allow read: if isSignedIn()
+            && !isBanned()
+            && (isPartyGameMaster(partyId) || isPartyMember(partyId));
+
+          allow create, update: if isSignedIn()
+            && !isBanned()
+            && memberUid == request.auth.uid
+            && isPartyMember(partyId)
+            && isValidPartyAttendance(incoming(), memberUid);
+        }
+      }
+
+      match /diary/{entryId} {
+        allow read: if isSignedIn()
+          && !isBanned()
+          && (isPartyGameMaster(partyId) || isPartyMember(partyId));
+
+        allow create: if isSignedIn()
+          && !isBanned()
+          && isPartyMember(partyId)
+          && isValidId(entryId)
+          && isValidPartyDiaryEntry(incoming(), entryId)
+          && incoming().authorUid == request.auth.uid;
+
+        allow update: if isSignedIn()
+          && !isBanned()
+          && (isPartyGameMaster(partyId) || existing().authorUid == request.auth.uid)
+          && isValidPartyDiaryEntry(incoming(), entryId)
+          && incoming().authorUid == existing().authorUid
+          && incoming().createdAt == existing().createdAt;
+
+        allow delete: if isSignedIn()
+          && !isBanned()
+          && (isPartyGameMaster(partyId) || existing().authorUid == request.auth.uid);
+      }
+
+      match /gm_notes/{noteId} {
+        allow read: if isSignedIn() && !isBanned() && isPartyGameMaster(partyId);
+        allow create, update: if isSignedIn()
+          && !isBanned()
+          && isPartyGameMaster(partyId)
+          && isValidId(noteId)
+          && isValidPartyMasterNote(incoming(), noteId);
+        allow delete: if isSignedIn() && !isBanned() && isPartyGameMaster(partyId);
+      }
+    }
+
+    // 3. PARTY INVITATIONS
+    match /party_invitations/{invitationId} {
+      allow create: if isSignedIn()
+        && !isBanned()
+        && isValidId(invitationId)
+        && isValidPartyInvitation(incoming(), invitationId)
+        && incoming().status == 'pending'
+        && incoming().senderUid == request.auth.uid
+        && (
+          (
+            incoming().keys().hasAll(['recipientUid'])
+            && incoming().recipientUid != request.auth.uid
+          )
+          || (
+            !incoming().keys().hasAll(['recipientUid'])
+            && incoming().recipientEmail.lower() != request.auth.token.email.lower()
+          )
+        )
+        && isPartyGameMaster(incoming().partyId);
+
+      allow read: if isSignedIn()
+        && !isBanned()
+        && (
+          isPartyGameMaster(resource.data.partyId)
+          || (
+            resource.data.keys().hasAll(['recipientUid'])
+            && request.auth.uid == resource.data.recipientUid
+          )
+          || (
+            !resource.data.keys().hasAll(['recipientUid'])
+            && request.auth.token.email.lower() == resource.data.recipientEmail.lower()
+          )
+        );
+
+      allow update: if isSignedIn()
+        && !isBanned()
+        && isValidPartyInvitation(incoming(), invitationId)
+        && incoming().id == existing().id
+        && incoming().partyId == existing().partyId
+        && incoming().recipientEmail == existing().recipientEmail
+        && incoming().senderUid == existing().senderUid
+        && incoming().senderEmail == existing().senderEmail
+        && incoming().createdAt == existing().createdAt
+        && incoming().keys().hasAll(['recipientUid']) == existing().keys().hasAll(['recipientUid'])
+        && (
+          !existing().keys().hasAll(['recipientUid'])
+          || incoming().recipientUid == existing().recipientUid
+        )
+        && (
+          (
+            isPartyGameMaster(existing().partyId)
+            && existing().status == 'pending'
+            && incoming().status == 'revoked'
+          )
+          || (
+            (
+              existing().keys().hasAll(['recipientUid'])
+              && request.auth.uid == existing().recipientUid
+              || !existing().keys().hasAll(['recipientUid'])
+              && request.auth.token.email.lower() == existing().recipientEmail.lower()
+            )
+            && existing().status == 'pending'
+            && (incoming().status == 'accepted' || incoming().status == 'declined')
+            && incoming().respondedAt is string
+            && (
+              incoming().status == 'declined'
+              || (
+                existsAfter(/databases/$(database)/documents/parties/$(existing().partyId)/members/$(request.auth.uid))
+                && getAfter(/databases/$(database)/documents/parties/$(existing().partyId)/members/$(request.auth.uid)).data.invitationId == invitationId
+                && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid)/partyMemberships/$(existing().partyId))
+                && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)/partyMemberships/$(existing().partyId)).data.invitationId == invitationId
+              )
+            )
+          )
+        );
+    }
+
+    // 4. AUTHENTICATED USER PROFILES
     match /users/{userId} {
       allow read: if isSignedIn() && (isMasterAdmin() || request.auth.uid == userId);
 
       allow create: if isSignedIn()
         && request.auth.uid == userId
         && incoming().uid == userId
-        && incoming().email is string;
+        && incoming().email is string
+        && (
+          !incoming().keys().hasAll(['handle'])
+          || (
+            incoming().handle is string
+            && existsAfter(/databases/$(database)/documents/public_handles/$(incoming().handle))
+            && getAfter(/databases/$(database)/documents/public_handles/$(incoming().handle)).data.uid == userId
+          )
+        );
 
       allow update: if isSignedIn()
         && request.auth.uid == userId
         && incoming().uid == userId
         && incoming().email is string
-        && incoming().uid == existing().uid;
+        && incoming().uid == existing().uid
+        && isValidUserHandleChange(incoming(), existing(), userId);
 
       allow delete: if isMasterAdmin();
+
+      match /partyMemberships/{partyId} {
+        allow read: if isSignedIn() && !isBanned() && request.auth.uid == userId;
+
+        allow create: if isSignedIn()
+          && !isBanned()
+          && request.auth.uid == userId
+          && incoming().partyId == partyId
+          && incoming().role == 'player'
+          && incoming().invitationId is string
+          && incoming().joinedAt is string
+          && existsAfter(/databases/$(database)/documents/parties/$(partyId)/members/$(userId))
+          && getAfter(/databases/$(database)/documents/parties/$(partyId)/members/$(userId)).data.invitationId == incoming().invitationId
+          && getAfter(/databases/$(database)/documents/parties/$(partyId)/members/$(userId)).data.status == 'active';
+
+        allow delete: if isSignedIn()
+          && !isBanned()
+          && (
+            request.auth.uid == userId
+            || isPartyGameMaster(partyId)
+          )
+          && !existsAfter(/databases/$(database)/documents/parties/$(partyId)/members/$(userId));
+      }
     }
 
-    // 3. TEMPLE ADMINISTRATORS
+    // 5. PUBLIC USER HANDLES
+    match /public_handles/{handle} {
+      allow get: if isSignedIn() && !isBanned();
+      allow list: if false;
+
+      allow create: if isSignedIn()
+        && !isBanned()
+        && isValidPublicHandle(incoming(), handle)
+        && incoming().uid == request.auth.uid
+        && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.handle == handle;
+
+      allow update: if isSignedIn()
+        && !isBanned()
+        && resource.data.uid == request.auth.uid
+        && isValidPublicHandle(incoming(), handle)
+        && incoming().uid == existing().uid
+        && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.handle == handle;
+
+      allow delete: if isSignedIn()
+        && !isBanned()
+        && resource.data.uid == request.auth.uid
+        && (
+          !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
+          || !getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.keys().hasAll(['handle'])
+          || getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.handle != handle
+        );
+    }
+
+    // 6. TEMPLE ADMINISTRATORS
     match /admins/{email} {
       allow read: if isSignedIn() && !isBanned() && (isMasterAdmin() || request.auth.token.email.lower() == email);
       allow write: if isMasterAdmin();
     }
 
-    // 4. OFFICIAL BLUEPRINT TEMPLATES
+    // 7. OFFICIAL BLUEPRINT TEMPLATES
     match /official_templates/{templateId} {
       allow read: if isSignedIn() && !isBanned();
       allow write: if isAdmin() && !isBanned();
     }
 
-    // 4b. BASE CLASS TEMPLATES (seeded from PDFs — public read, admin write)
+    // 7b. BASE CLASS TEMPLATES (seeded from PDFs — public read, admin write)
     match /templates/{templateId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 5. PUBLIC COMMUNITY REALM CHARACTERS
+    // 8. PUBLIC COMMUNITY REALM CHARACTERS
     match /community_characters/{communityId} {
       allow read: if isSignedIn() && !isBanned();
       allow create: if isSignedIn() && !isBanned() && isValidCommunityCharacter(incoming()) && incoming().authorEmail.lower() == request.auth.token.email.lower();
@@ -191,15 +697,75 @@ service cloud.firestore {
       allow delete: if isSignedIn() && !isBanned() && (isAdmin() || existing().authorEmail.lower() == request.auth.token.email.lower());
     }
 
-    // 6. PARCHMENT CORRESPONDENCE MAILBOXES
+    // 9. PARCHMENT CORRESPONDENCE MAILBOXES
     match /mails/{mailId} {
-      allow read: if isSignedIn() && !isBanned() && (request.auth.token.email.lower() == resource.data.recipientEmail.lower() || isMasterAdmin());
-      allow create: if isSignedIn() && !isBanned() && isValidMail(incoming()) && (isMasterAdmin() || incoming().senderEmail.lower() == request.auth.token.email.lower());
-      allow update: if isSignedIn() && !isBanned() && (request.auth.token.email.lower() == resource.data.recipientEmail.lower() || isMasterAdmin()) && isValidMail(incoming());
-      allow delete: if isSignedIn() && !isBanned() && (request.auth.token.email.lower() == resource.data.recipientEmail.lower() || isMasterAdmin());
+      allow read: if isSignedIn()
+        && !isBanned()
+        && (
+          request.auth.token.email.lower() == resource.data.recipientEmail.lower()
+          || (resource.data.keys().hasAll(['recipientUid']) && resource.data.recipientUid == request.auth.uid)
+          || isMasterAdmin()
+        );
+      allow create: if isSignedIn()
+        && !isBanned()
+        && isValidMail(incoming())
+        && (
+          isMasterAdmin()
+          || (
+            incoming().type == 'party_invitation'
+            && incoming().senderEmail.lower() == request.auth.token.email.lower()
+            && isPartyGameMaster(incoming().partyId)
+            && existsAfter(/databases/$(database)/documents/party_invitations/$(incoming().partyInvitationId))
+            && getAfter(/databases/$(database)/documents/party_invitations/$(incoming().partyInvitationId)).data.partyId == incoming().partyId
+            && getAfter(/databases/$(database)/documents/party_invitations/$(incoming().partyInvitationId)).data.recipientEmail.lower() == incoming().recipientEmail.lower()
+            && getAfter(/databases/$(database)/documents/party_invitations/$(incoming().partyInvitationId)).data.keys().hasAll(['recipientUid']) == incoming().keys().hasAll(['recipientUid'])
+            && (
+              !incoming().keys().hasAll(['recipientUid'])
+              || getAfter(/databases/$(database)/documents/party_invitations/$(incoming().partyInvitationId)).data.recipientUid == incoming().recipientUid
+            )
+            && getAfter(/databases/$(database)/documents/party_invitations/$(incoming().partyInvitationId)).data.status == 'pending'
+          )
+          || (
+            incoming().type != 'party_invitation'
+            && incoming().senderEmail.lower() == request.auth.token.email.lower()
+          )
+        );
+      allow update: if isSignedIn()
+        && !isBanned()
+        && (
+          request.auth.token.email.lower() == resource.data.recipientEmail.lower()
+          || (resource.data.keys().hasAll(['recipientUid']) && resource.data.recipientUid == request.auth.uid)
+          || isMasterAdmin()
+        )
+        && isValidMail(incoming())
+        && incoming().keys().hasAll(['recipientUid']) == existing().keys().hasAll(['recipientUid'])
+        && (
+          !existing().keys().hasAll(['recipientUid'])
+          || incoming().recipientUid == existing().recipientUid
+        )
+        && (resource.data.type != 'party_invitation' || (
+          incoming().partyInvitationId == existing().partyInvitationId
+          && incoming().partyId == existing().partyId
+          && incoming().recipientEmail == existing().recipientEmail
+          && incoming().keys().hasAll(['recipientUid']) == existing().keys().hasAll(['recipientUid'])
+          && (
+            !existing().keys().hasAll(['recipientUid'])
+            || incoming().recipientUid == existing().recipientUid
+          )
+          && incoming().senderEmail == existing().senderEmail
+          && incoming().type == existing().type
+          && incoming().diff(existing()).affectedKeys().hasOnly(['read'])
+        ));
+      allow delete: if isSignedIn()
+        && !isBanned()
+        && (
+          request.auth.token.email.lower() == resource.data.recipientEmail.lower()
+          || (resource.data.keys().hasAll(['recipientUid']) && resource.data.recipientUid == request.auth.uid)
+          || isMasterAdmin()
+        );
     }
 
-    // 7. BANNED USERS COVEN
+    // 10. BANNED USERS COVEN
     match /banned_users/{email} {
       allow read: if isSignedIn() && !isBanned() && (isMasterAdmin() || request.auth.token.email.lower() == email);
       allow write: if isMasterAdmin();

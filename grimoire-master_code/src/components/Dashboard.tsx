@@ -1,11 +1,16 @@
-import { useState, useMemo, FormEvent } from 'react';
-import { CharacterTemplate, Character, Spell, Mail, BannedUser, Admin, UserProfile } from '../types';
+import { useState, useMemo, useEffect, FormEvent } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { CharacterTemplate, Character, Mail, PartyInvitation, BannedUser, Admin, UserProfile } from '../types';
 import { COMMUNITY_CHARACTERS } from '../data';
+import { db } from '../firebase';
 import { useTemplates } from '../hooks/useTemplates';
 import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, ArrowLeft, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Skull, AlertCircle, Users, X, ScrollText, Edit3 } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import AdminCourt from './AdminCourt';
 import CharacterCreationWizard from './CharacterCreationWizard';
+import PartyHub from './PartyHub';
+import { respondToPartyInvitation } from '../lib/partyService';
+import { notify } from './NotificationSystem';
 
 interface DashboardProps {
   onImportCharacter: (character: Character) => void;
@@ -49,7 +54,7 @@ const _mailAge = (iso: string): string => {
   return `${d}G FA`;
 };
 const _mailSender = (m: { type: string }) =>
-  m.type === 'warning' ? 'Consiglio Arcante' : 'Gilda del Grimorio';
+  m.type === 'warning' ? 'Consiglio Arcante' : m.type === 'party_invitation' ? 'Invito al Party' : 'Gilda del Grimorio';
 const _DECKLE =
   'polygon(0% 0%,5% 1%,10% 0%,15% 2%,20% 0%,25% 1%,30% 0%,35% 2%,40% 0%,45% 1%,50% 0%,55% 2%,60% 0%,65% 1%,70% 0%,75% 2%,80% 0%,85% 1%,90% 0%,95% 2%,100% 0%,100% 100%,95% 98%,90% 100%,85% 99%,80% 100%,75% 98%,70% 100%,65% 99%,60% 100%,55% 98%,50% 100%,45% 99%,40% 100%,35% 98%,30% 100%,25% 99%,20% 100%,15% 98%,10% 100%,5% 99%,0% 100%)';
 
@@ -84,7 +89,7 @@ export default function Dashboard({
   onPublishCommunityCharacter,
   onDeleteCommunityCharacter,
 }: DashboardProps) {
-  const [activeTab, setActiveTab] = useState<'library' | 'my-characters' | 'court'>('my-characters');
+  const [activeTab, setActiveTab] = useState<'library' | 'my-characters' | 'party' | 'court'>('my-characters');
   const [searchQuery, setSearchQuery] = useState('');
   const [classFilter, setClassFilter] = useState('All Classes');
   const [minLevelFilter, setMinLevelFilter] = useState('Level 1');
@@ -99,8 +104,37 @@ export default function Dashboard({
   const [isMailboxOpen, setIsMailboxOpen] = useState(false);
   const [selectedMail, setSelectedMail] = useState<Mail | null>(null);
   const [mobileMailDetail, setMobileMailDetail] = useState(false);
+  const [selectedInvitationStatus, setSelectedInvitationStatus] = useState<PartyInvitation['status'] | null>(null);
   const closeMailbox = () => { setIsMailboxOpen(false); setSelectedMail(null); setMobileMailDetail(false); };
   const openMailItem = (mail: Mail) => { setSelectedMail(mail); setMobileMailDetail(true); if (!mail.read) onMarkMailRead(mail.id); };
+
+  useEffect(() => {
+    if (selectedMail?.type !== 'party_invitation' || !selectedMail.partyInvitationId) {
+      setSelectedInvitationStatus(null);
+      return;
+    }
+
+    return onSnapshot(doc(db, 'party_invitations', selectedMail.partyInvitationId), (snapshot) => {
+      setSelectedInvitationStatus(snapshot.exists()
+        ? (snapshot.data() as PartyInvitation).status
+        : null);
+    }, (error) => {
+      console.error('Unable to load Party invitation status:', error);
+      notify.error('Impossibile verificare lo stato dell’invito Party.');
+    });
+  }, [selectedMail?.id, selectedMail?.partyInvitationId, selectedMail?.type]);
+
+  const handleRespondToPartyInvitation = async (response: 'accepted' | 'declined') => {
+    if (!currentUser || !selectedMail?.partyInvitationId) return;
+    try {
+      await respondToPartyInvitation(db, currentUser, selectedMail.partyInvitationId, selectedMail.id, response);
+      setSelectedInvitationStatus(response);
+      notify.success(response === 'accepted' ? 'Invito accettato: trovi la campagna nella sezione Party.' : 'Invito rifiutato.');
+    } catch (error) {
+      console.error('Unable to respond to Party invitation:', error);
+      notify.error(error instanceof Error ? error.message : 'Impossibile rispondere all’invito.');
+    }
+  };
 
   // New Official Template Creation Modal state
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
@@ -291,6 +325,16 @@ export default function Dashboard({
             >
               Library &amp; Templates
             </button>
+            <button
+              onClick={() => setActiveTab('party')}
+              className={`font-semibold pb-1 border-b-2 font-sans transition-all ${
+                activeTab === 'party'
+                  ? 'text-primary border-primary'
+                  : 'text-on-surface-variant border-transparent hover:text-primary'
+              }`}
+            >
+              Party
+            </button>
             {isMasterAdmin && (
               <button
                 onClick={() => setActiveTab('court')}
@@ -383,7 +427,13 @@ export default function Dashboard({
 
       <main className="max-w-7xl mx-auto px-6 py-12 space-y-16 pb-24 md:pb-12">
         
-        {activeTab === 'court' && isMasterAdmin ? (
+        {activeTab === 'party' ? (
+          <PartyHub
+            currentUser={currentUser}
+            myCharacters={myCharacters}
+            onSelectCharacter={onSelectCharacter}
+          />
+        ) : activeTab === 'court' && isMasterAdmin ? (
           <div className="animate-[fadeIn_0.32s_ease]">
             <AdminCourt
               masterEmail={currentUser?.email}
@@ -937,7 +987,7 @@ export default function Dashboard({
                       >
                         <div className="flex items-start gap-3">
                           <div className="md:hidden flex-shrink-0 w-11 h-11 rounded-lg bg-surface-container-high border border-primary/30 flex items-center justify-center text-xl">
-                            {mail.type === 'warning' ? '⚔️' : '📜'}
+                            {mail.type === 'warning' ? '⚔️' : mail.type === 'party_invitation' ? '🛡️' : '📜'}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start gap-1 mb-0.5">
@@ -990,6 +1040,22 @@ export default function Dashboard({
                     <div className="flex-1 font-serif text-stone-800 leading-relaxed space-y-4">
                       <p className="text-lg font-bold text-stone-900">{selectedMail.subject}</p>
                       <p className="text-base italic whitespace-pre-line">{selectedMail.content}</p>
+                      {selectedMail.type === 'party_invitation' && (
+                        <div className="mt-6 border-t border-black/10 pt-5">
+                          {selectedInvitationStatus === 'pending' ? (
+                            <div className="flex flex-wrap gap-3">
+                              <button onClick={() => void handleRespondToPartyInvitation('accepted')} className="rounded bg-amber-700 px-4 py-2 font-sans text-sm font-bold text-white hover:bg-amber-600">Accetta invito</button>
+                              <button onClick={() => void handleRespondToPartyInvitation('declined')} className="rounded border border-stone-500 px-4 py-2 font-sans text-sm text-stone-700 hover:bg-stone-900/5">Rifiuta</button>
+                            </div>
+                          ) : selectedInvitationStatus ? (
+                            <p className="font-sans text-sm font-semibold text-stone-700">
+                              {selectedInvitationStatus === 'accepted' ? 'Hai accettato questo invito.' : selectedInvitationStatus === 'declined' ? 'Hai rifiutato questo invito.' : 'Questo invito non è più attivo.'}
+                            </p>
+                          ) : (
+                            <p className="font-sans text-sm text-stone-700">Invito non disponibile o già rimosso.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="mt-10 text-right border-t border-black/10 pt-5">
                       <p className="font-serif text-xl text-stone-900 italic">Gilda del Grimorio</p>
@@ -1141,6 +1207,16 @@ export default function Dashboard({
         >
           <BookOpen size={22} />
           <span className="text-[10px] font-mono uppercase tracking-wider">Libreria</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('party')}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all active:scale-90 ${
+            activeTab === 'party' ? 'text-primary drop-shadow-[0_0_8px_rgba(242,202,80,0.5)]' : 'text-on-surface-variant opacity-60'
+          }`}
+        >
+          <Users size={22} />
+          <span className="text-[10px] font-mono uppercase tracking-wider">Party</span>
         </button>
 
         {isMasterAdmin && (

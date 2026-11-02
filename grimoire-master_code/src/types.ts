@@ -14,6 +14,7 @@ export interface Character {
     SAG: number;
     CAR: number;
   };
+  statModifiers?: StatModifier[];
   vitality: {
     max: number;
     current: number;
@@ -23,8 +24,9 @@ export interface Character {
   race: string;
   alignment: string;
   alignmentDesc?: string;
+  partyId?: string;
   bonds: { companion: string; statement: string }[];
-  gear: { name: string; weight: number }[];
+  gear: { name: string; weight: number; quantity?: number; consumable?: boolean }[];
   maxWeight: number;
   locked?: boolean;
   preparedSpellNames?: string[];
@@ -36,6 +38,7 @@ export interface Character {
     body?: string;
   };
   originTrait?: string;
+  lore?: string;
   ownerId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -61,6 +64,14 @@ export interface DiceRollLog {
 }
 
 export type AttributeKey = 'INT' | 'FOR' | 'DES' | 'COS' | 'SAG' | 'CAR';
+
+export interface StatModifier {
+  id: string;
+  name: string;
+  icon: string;
+  value: number;
+  attributes: AttributeKey[];
+}
 
 export interface TemplateRace {
   id: string;
@@ -121,9 +132,91 @@ export interface Mail {
   subject: string;
   content: string;
   senderEmail: string;
-  type: 'promotion' | 'warning';
+  type: 'promotion' | 'warning' | 'party_invitation';
+  partyInvitationId?: string;
+  partyId?: string;
+  recipientUid?: string;
   read: boolean;
   createdAt: string;
+}
+
+export interface Party {
+  id: string;
+  name: string;
+  gmUid: string;
+  gmDisplayName: string;
+  objective: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PartyMember {
+  uid: string;
+  role: 'player';
+  status: 'active';
+  displayName: string;
+  characterId?: string;
+  invitationId: string;
+  joinedAt: string;
+}
+
+export interface PartyInvitation {
+  id: string;
+  partyId: string;
+  partyName: string;
+  recipientEmail: string;
+  recipientUid?: string;
+  senderUid: string;
+  senderEmail: string;
+  status: 'pending' | 'accepted' | 'declined' | 'revoked';
+  createdAt: string;
+  respondedAt?: string;
+}
+
+export interface PartyCharacterSnapshot {
+  characterId: string;
+  ownerUid: string;
+  name: string;
+  class: string;
+  level: number;
+  avatar: string;
+  attributes: Character['attributes'];
+  vitality: Character['vitality'];
+  armor: number;
+  damageDie: string;
+  gear: Character['gear'];
+}
+
+export interface PartySession {
+  id: string;
+  title: string;
+  startsAt: string;
+  timezone: string;
+  status: 'planned' | 'confirmed' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PartyAttendance {
+  uid: string;
+  status: 'pending' | 'confirmed' | 'declined';
+  updatedAt: string;
+}
+
+export interface PartyDiaryEntry {
+  id: string;
+  authorUid: string;
+  authorName: string;
+  title: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface PartyMasterNote {
+  id: string;
+  title: string;
+  content: string;
+  updatedAt: string;
 }
 
 export interface BannedUser {
@@ -144,6 +237,7 @@ export interface UserProfile {
   uid: string;
   email: string;
   emailLower: string;
+  handle?: string;
   displayName?: string;
   photoURL?: string;
   providerIds: string[];
@@ -151,3 +245,10 @@ export interface UserProfile {
   lastLoginAt: string;
 }
 
+export interface PublicUserHandle {
+  uid: string;
+  handle: string;
+  displayName: string;
+  photoURL: string;
+  updatedAt: string;
+}

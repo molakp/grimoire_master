@@ -8,7 +8,7 @@ import {
   initializeTestEnvironment,
   RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
 
 let testEnv: RulesTestEnvironment;
 
@@ -50,6 +50,50 @@ const mail = (id: string, recipientEmail: string, senderEmail: string) => ({
   type: 'warning',
   read: false,
   createdAt: new Date().toISOString(),
+});
+
+const party = (id: string, gmUid: string, overrides: Record<string, unknown> = {}) => ({
+  id,
+  name: 'La Spedizione',
+  gmUid,
+  gmDisplayName: 'Master',
+  objective: 'Recuperare il sigillo',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  ...overrides,
+});
+
+const partyInvitation = (
+  id: string,
+  partyId: string,
+  recipientEmail: string,
+  senderUid: string,
+  senderEmail: string,
+  recipientUid?: string,
+) => ({
+  id,
+  partyId,
+  partyName: 'La Spedizione',
+  recipientEmail,
+  ...(recipientUid ? { recipientUid } : {}),
+  senderUid,
+  senderEmail,
+  status: 'pending',
+  createdAt: new Date().toISOString(),
+});
+
+const partyCharacterSnapshot = (characterId: string, ownerUid: string) => ({
+  characterId,
+  ownerUid,
+  name: 'Thalric',
+  class: 'Il Mago',
+  level: 1,
+  avatar: '',
+  attributes: { INT: 16, FOR: 8, DES: 12, COS: 13, SAG: 15, CAR: 9 },
+  vitality: { max: 16, current: 16 },
+  armor: 1,
+  damageDie: 'D4',
+  gear: [{ name: 'Daga', weight: 1 }],
 });
 
 const communityCharacter = (id: string, authorEmail: string) => ({
@@ -129,6 +173,230 @@ describe('characters', () => {
   });
 });
 
+describe('parties', () => {
+  it('lets the game master create and read their party', async () => {
+    const db = asUser(ALICE);
+    await assertSucceeds(setDoc(doc(db, 'parties/p1'), party('p1', ALICE.uid)));
+    await assertSucceeds(getDoc(doc(db, 'parties/p1')));
+  });
+
+  it('lets party members read a party but hides it from other users', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'parties/p1'), party('p1', ALICE.uid));
+      await setDoc(doc(db, 'parties/p1/members/bob'), {
+        uid: BOB.uid,
+        role: 'player',
+        status: 'active',
+        joinedAt: new Date().toISOString(),
+      });
+    });
+
+    await assertSucceeds(getDoc(doc(asUser(BOB), 'parties/p1')));
+    await assertFails(getDoc(doc(asUser(MASTER), 'parties/p1')));
+    await assertFails(getDoc(doc(asGuest(), 'parties/p1')));
+  });
+
+  it('rejects invalid party data and prevents changing its game master', async () => {
+    await assertFails(setDoc(doc(asUser(ALICE), 'parties/invalid'), party('invalid', ALICE.uid, { name: '' })));
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'parties/p1'), party('p1', ALICE.uid));
+    });
+
+    await assertFails(updateDoc(doc(asUser(ALICE), 'parties/p1'), { gmUid: BOB.uid }));
+    await assertFails(setDoc(doc(asUser(BOB), 'parties/p2'), party('p2', ALICE.uid)));
+  });
+});
+
+describe('party invitations', () => {
+  it('lets the game master create an invitation and deliver it through the recipient mailbox', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'parties/p1'), party('p1', ALICE.uid));
+    });
+
+    const invitation = partyInvitation('invite1', 'p1', BOB.email, ALICE.uid, ALICE.email);
+    await assertSucceeds(setDoc(doc(asUser(ALICE), 'party_invitations/invite1'), invitation));
+    await assertSucceeds(setDoc(doc(asUser(ALICE), 'mails/invite_mail'), {
+      ...mail('invite_mail', BOB.email, ALICE.email),
+      type: 'party_invitation',
+      partyId: 'p1',
+      partyInvitationId: 'invite1',
+    }));
+
+    await assertSucceeds(getDoc(doc(asUser(BOB), 'party_invitations/invite1')));
+    await assertFails(getDoc(doc(asUser(MASTER), 'party_invitations/invite1')));
+    await assertSucceeds(getDoc(doc(asUser(BOB), 'mails/invite_mail')));
+    await assertFails(getDoc(doc(asUser(ALICE), 'mails/invite_mail')));
+  });
+
+  it('delivers handle invitations to the recipient UID and permits an atomic response', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'parties/p1'), party('p1', ALICE.uid));
+    });
+
+    const invitation = partyInvitation('invite_uid', 'p1', '', ALICE.uid, ALICE.email, BOB.uid);
+    const mailData = {
+      ...mail('mail_uid', '', ALICE.email),
+      recipientUid: BOB.uid,
+      type: 'party_invitation',
+      partyId: 'p1',
+      partyInvitationId: 'invite_uid',
+    };
+    const senderDb = asUser(ALICE);
+    const sendBatch = writeBatch(senderDb);
+    sendBatch.set(doc(senderDb, 'party_invitations/invite_uid'), invitation);
+    sendBatch.set(doc(senderDb, 'mails/mail_uid'), mailData);
+    await assertSucceeds(sendBatch.commit());
+
+    const recipientDb = asUser(BOB);
+    await assertSucceeds(getDoc(doc(recipientDb, 'party_invitations/invite_uid')));
+    await assertSucceeds(getDoc(doc(recipientDb, 'mails/mail_uid')));
+    await assertSucceeds(getDocs(query(
+      collection(recipientDb, 'mails'),
+      where('recipientUid', '==', BOB.uid),
+    )));
+    await assertFails(getDoc(doc(asUser(MASTER), 'mails/mail_uid')));
+    await assertFails(updateDoc(doc(recipientDb, 'party_invitations/invite_uid'), {
+      recipientUid: MASTER.uid,
+      status: 'declined',
+      respondedAt: new Date().toISOString(),
+    }));
+
+    const responseBatch = writeBatch(recipientDb);
+    responseBatch.update(doc(recipientDb, 'party_invitations/invite_uid'), {
+      status: 'accepted',
+      respondedAt: new Date().toISOString(),
+    });
+    responseBatch.update(doc(recipientDb, 'mails/mail_uid'), { read: true });
+    responseBatch.set(doc(recipientDb, 'parties/p1/members/bob'), {
+      uid: BOB.uid,
+      role: 'player',
+      status: 'active',
+      displayName: 'Bob',
+      invitationId: 'invite_uid',
+      joinedAt: new Date().toISOString(),
+    });
+    responseBatch.set(doc(recipientDb, 'users/bob/partyMemberships/p1'), {
+      partyId: 'p1',
+      role: 'player',
+      invitationId: 'invite_uid',
+      joinedAt: new Date().toISOString(),
+    });
+    await assertSucceeds(responseBatch.commit());
+  });
+
+  it('accepts an invitation only when the matching party membership is created atomically', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'parties/p1'), party('p1', ALICE.uid));
+      await setDoc(doc(db, 'party_invitations/invite1'), partyInvitation('invite1', 'p1', BOB.email, ALICE.uid, ALICE.email));
+    });
+
+    const db = asUser(BOB);
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'party_invitations/invite1'), {
+      status: 'accepted',
+      respondedAt: new Date().toISOString(),
+    });
+    batch.set(doc(db, 'parties/p1/members/bob'), {
+      uid: BOB.uid,
+      role: 'player',
+      status: 'active',
+      displayName: 'Bob',
+      invitationId: 'invite1',
+      joinedAt: new Date().toISOString(),
+    });
+    batch.set(doc(db, 'users/bob/partyMemberships/p1'), {
+      partyId: 'p1',
+      role: 'player',
+      invitationId: 'invite1',
+      joinedAt: new Date().toISOString(),
+    });
+    await assertSucceeds(batch.commit());
+    await assertSucceeds(getDoc(doc(db, 'parties/p1')));
+  });
+});
+
+describe('party character sharing and private notes', () => {
+  it('shares only the roster projection with party members and keeps master notes private', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'parties/p1'), party('p1', ALICE.uid));
+      await setDoc(doc(db, 'parties/p1/members/bob'), {
+        uid: BOB.uid,
+        role: 'player',
+        status: 'active',
+        displayName: 'Bob',
+        characterId: 'bob_char',
+        invitationId: 'invite1',
+        joinedAt: new Date().toISOString(),
+      });
+      await setDoc(doc(db, 'characters/bob_char'), character('bob_char', BOB.uid, { partyId: 'p1' }));
+      await setDoc(doc(db, 'parties/p1/roster/bob_char'), partyCharacterSnapshot('bob_char', BOB.uid));
+      await setDoc(doc(db, 'parties/p1/gm_notes/n1'), {
+        id: 'n1', title: 'Segreto', content: 'Solo per il master', updatedAt: new Date().toISOString(),
+      });
+    });
+
+    await assertSucceeds(getDoc(doc(asUser(BOB), 'parties/p1/roster/bob_char')));
+    await assertSucceeds(getDoc(doc(asUser(ALICE), 'parties/p1/roster/bob_char')));
+    await assertFails(getDoc(doc(asUser(ADMIN), 'parties/p1/roster/bob_char')));
+    await assertFails(getDoc(doc(asUser(ALICE), 'characters/bob_char')));
+    await assertSucceeds(getDoc(doc(asUser(ALICE), 'parties/p1/gm_notes/n1')));
+    await assertFails(getDoc(doc(asUser(BOB), 'parties/p1/gm_notes/n1')));
+  });
+
+  it('prevents binding one character to a second campaign', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'parties/p1'), party('p1', ALICE.uid));
+      await setDoc(doc(db, 'parties/p2'), party('p2', ALICE.uid));
+      await setDoc(doc(db, 'parties/p1/members/bob'), {
+        uid: BOB.uid, role: 'player', status: 'active', displayName: 'Bob',
+        characterId: 'bob_char', invitationId: 'invite1', joinedAt: new Date().toISOString(),
+      });
+      await setDoc(doc(db, 'parties/p2/members/bob'), {
+        uid: BOB.uid, role: 'player', status: 'active', displayName: 'Bob',
+        invitationId: 'invite2', joinedAt: new Date().toISOString(),
+      });
+      await setDoc(doc(db, 'characters/bob_char'), character('bob_char', BOB.uid, { partyId: 'p1' }));
+      await setDoc(doc(db, 'parties/p1/roster/bob_char'), partyCharacterSnapshot('bob_char', BOB.uid));
+    });
+
+    const db = asUser(BOB);
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'characters/bob_char'), { partyId: 'p2' });
+    batch.update(doc(db, 'parties/p2/members/bob'), { characterId: 'bob_char' });
+    batch.set(doc(db, 'parties/p2/roster/bob_char'), partyCharacterSnapshot('bob_char', BOB.uid));
+    await assertFails(batch.commit());
+  });
+
+  it('lets a player link their own character and publish only its roster projection atomically', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'parties/p1'), party('p1', ALICE.uid));
+      await setDoc(doc(db, 'parties/p1/members/bob'), {
+        uid: BOB.uid,
+        role: 'player',
+        status: 'active',
+        displayName: 'Bob',
+        invitationId: 'invite1',
+        joinedAt: new Date().toISOString(),
+      });
+      await setDoc(doc(db, 'characters/bob_char'), character('bob_char', BOB.uid));
+    });
+
+    const db = asUser(BOB);
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'parties/p1/members/bob'), { characterId: 'bob_char' });
+    batch.update(doc(db, 'characters/bob_char'), { partyId: 'p1' });
+    batch.set(doc(db, 'parties/p1/roster/bob_char'), partyCharacterSnapshot('bob_char', BOB.uid));
+    await assertSucceeds(batch.commit());
+    await assertSucceeds(getDoc(doc(asUser(ALICE), 'parties/p1/roster/bob_char')));
+    await assertFails(getDoc(doc(asUser(ALICE), 'characters/bob_char')));
+  });
+});
+
 describe('master role (custom claim)', () => {
   it('allows the master to manage admins and bans', async () => {
     const db = asMaster();
@@ -157,6 +425,41 @@ describe('master role (custom claim)', () => {
     await assertSucceeds(getDoc(doc(asMaster(), 'users', ALICE.uid)));
     await assertSucceeds(getDoc(doc(asUser(ALICE), 'users', ALICE.uid)));
     await assertFails(getDoc(doc(asUser(BOB), 'users', ALICE.uid)));
+  });
+});
+
+describe('public handles', () => {
+  it('allows an owner to claim a unique handle atomically without publishing their email', async () => {
+    const db = asUser(ALICE);
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'users/alice'), {
+      uid: ALICE.uid,
+      email: ALICE.email,
+      handle: 'alice_rpg',
+    });
+    batch.set(doc(db, 'public_handles/alice_rpg'), {
+      uid: ALICE.uid,
+      handle: 'alice_rpg',
+      displayName: 'Alice',
+      photoURL: '',
+      updatedAt: new Date().toISOString(),
+    });
+    await assertSucceeds(batch.commit());
+    await assertSucceeds(getDoc(doc(asUser(BOB), 'public_handles/alice_rpg')));
+    await assertFails(getDoc(doc(asUser(BOB), 'users/alice')));
+
+    const bobDb = asUser(BOB);
+    await assertSucceeds(setDoc(doc(bobDb, 'users/bob'), { uid: BOB.uid, email: BOB.email }));
+    const conflictingClaim = writeBatch(bobDb);
+    conflictingClaim.update(doc(bobDb, 'users/bob'), { handle: 'alice_rpg' });
+    conflictingClaim.set(doc(bobDb, 'public_handles/alice_rpg'), {
+      uid: BOB.uid,
+      handle: 'alice_rpg',
+      displayName: 'Bob',
+      photoURL: '',
+      updatedAt: new Date().toISOString(),
+    });
+    await assertFails(conflictingClaim.commit());
   });
 });
 

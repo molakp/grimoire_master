@@ -3,13 +3,18 @@ import { DiceRollLog } from '../types';
 import { Sparkles, History, Trash2, X, AlertTriangle, ShieldCheck, HelpCircle } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { useNotification, NotificationCard } from './NotificationSystem';
-import { getAttributeModifier, getRollOutcome, rollDie } from '../lib/gameRules';
+import { formatModifier, getAttributeModifier, getRollModifier, getRollOutcome, rollDie } from '../lib/gameRules';
 
 interface DiceRollerProps {
   onAddLog?: (log: DiceRollLog) => void;
   logs: DiceRollLog[];
   onClearLogs: () => void;
-  activeStatPreset?: { name: string; value: number } | null;
+  activeStatPreset?: {
+    name: string;
+    value: number;
+    additionalModifier: number;
+    appliedModifiers: { name: string; icon: string; value: number }[];
+  } | null;
   onClearPreset?: () => void;
 }
 
@@ -40,7 +45,9 @@ export default function DiceRoller({
       if (type === 'action') {
         const d1 = rollDie(6);
         const d2 = rollDie(6);
-        const mod = activeStatPreset ? calculateModifier(activeStatPreset.value) : customModifier;
+        const mod = activeStatPreset
+          ? getRollModifier(activeStatPreset.value, activeStatPreset.additionalModifier)
+          : customModifier;
         const total = d1 + d2 + mod;
         const outcome = getRollOutcome(total);
 
@@ -78,8 +85,10 @@ export default function DiceRoller({
 
   const getPresetModifier = () => {
     if (!activeStatPreset) return 0;
-    return calculateModifier(activeStatPreset.value);
+    return getRollModifier(activeStatPreset.value, activeStatPreset.additionalModifier);
   };
+
+  const getPresetBaseModifier = () => activeStatPreset ? calculateModifier(activeStatPreset.value) : 0;
 
   return (
     <>
@@ -101,8 +110,13 @@ export default function DiceRoller({
             <div className="text-left">
               <p className="text-[10px] text-primary font-mono tracking-wider">ROLL PRESET CARICATO</p>
               <p className="text-sm font-bold text-on-surface">
-                {activeStatPreset.name} ({activeStatPreset.value}) → Mod: {getPresetModifier() >= 0 ? `+${getPresetModifier()}` : getPresetModifier()}
+                {activeStatPreset.name} ({activeStatPreset.value}) → Mod: {formatModifier(getPresetModifier())}
               </p>
+              {activeStatPreset.appliedModifiers.length > 0 && (
+                <p className="text-[10px] text-on-surface-variant mt-1">
+                  {activeStatPreset.appliedModifiers.map((modifier) => `${modifier.icon} ${modifier.name} ${formatModifier(modifier.value)}`).join(' · ')}
+                </p>
+              )}
             </div>
             <button
               onClick={(e) => {
@@ -158,16 +172,29 @@ export default function DiceRoller({
                 <p className="text-sm text-on-surface-variant mt-1">
                   Valore Stat: <span className="font-mono text-primary">{activeStatPreset.value}</span> | Modificatore:{' '}
                   <span className="font-mono font-bold text-primary">
-                    {getPresetModifier() >= 0 ? `+${getPresetModifier()}` : getPresetModifier()}
+                    {formatModifier(getPresetBaseModifier())}
+                    {activeStatPreset.additionalModifier !== 0 && (
+                      <> {formatModifier(activeStatPreset.additionalModifier)} circostanze</>
+                    )}
+                    {activeStatPreset.additionalModifier !== 0 && <> = {formatModifier(getPresetModifier())}</>}
                   </span>
                 </p>
+                {activeStatPreset.appliedModifiers.length > 0 && (
+                  <ul className="mt-2 space-y-1 text-xs text-on-surface-variant">
+                    {activeStatPreset.appliedModifiers.map((modifier, index) => (
+                      <li key={`${modifier.name}-${modifier.value}-${index}`}>
+                        {modifier.icon} {modifier.name}: {formatModifier(modifier.value)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
                 <button
                   onClick={() => rollDice('action')}
                   disabled={isRolling}
                   className="w-full mt-4 py-3 bg-gradient-to-r from-primary-container to-primary text-on-primary font-bold rounded shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all text-sm font-mono"
                 >
-                  {isRolling ? 'Lancio in corso...' : `Tira 2D6 + ${getPresetModifier()}`}
+                  {isRolling ? 'Lancio in corso...' : `Tira 2D6 ${formatModifier(getPresetModifier())}`}
                 </button>
               </div>
             ) : (

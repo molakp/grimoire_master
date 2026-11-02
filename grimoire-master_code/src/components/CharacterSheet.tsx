@@ -1,14 +1,33 @@
 import { useState, useEffect, ReactNode, FormEvent, ChangeEvent } from 'react';
-import { Character, CharacterTemplate, DiceRollLog } from '../types';
-import { Shield, BookOpen, Swords, Heart, User, Sparkles, Plus, Minus, Lock, Unlock, Trash2, ArrowLeft, RotateCcw, CloudLightning } from 'lucide-react';
+import { AttributeKey, Character, CharacterTemplate, StatModifier } from '../types';
+import { Sparkles, Plus, Minus, Lock, Unlock, Trash2, ArrowLeft, CloudLightning, X } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import { formatModifier, getAttributeModifier } from '../lib/gameRules';
+
+const ATTRIBUTE_KEYS: AttributeKey[] = ['INT', 'FOR', 'DES', 'COS', 'SAG', 'CAR'];
+const ATTRIBUTE_NAMES: Record<AttributeKey, string> = {
+  INT: 'Intelligenza',
+  FOR: 'Forza',
+  DES: 'Destrezza',
+  COS: 'Costituzione',
+  SAG: 'Saggezza',
+  CAR: 'Carisma',
+};
+
+const getDefaultLore = (character: Character) => character.class.includes('Mago')
+  ? 'Thalric della foresta d\'argento. Un tempo scolaro brillante della prestigiosa accademia di Grimorio Master, bandito per aver cercato i segreti nascosti della necromanzia arcana. Ora vaga per i sotterranei alla ricerca della gemma d\'anima perfetta...'
+  : 'Un combattente coraggioso fuggito dalla morsa della distruzione di Redwall, brandisce un pesante spadone spezzatombe...';
 
 interface CharacterSheetProps {
   character: Character;
   onUpdateCharacter: (character: Character) => void;
   onBackToDashboard: () => void;
-  onRollStat: (statName: string, statValue: number) => void;
+  onRollStat: (
+    statName: string,
+    statValue: number,
+    additionalModifier: number,
+    appliedModifiers: Pick<StatModifier, 'name' | 'icon' | 'value'>[],
+  ) => void;
   activeTab: 'stats' | 'spells' | 'moves' | 'gear' | 'lore';
   setActiveTab: (tab: 'stats' | 'spells' | 'moves' | 'gear' | 'lore') => void;
   renderSpellsTab: () => ReactNode;
@@ -41,9 +60,21 @@ export default function CharacterSheet({
     ? (template.availableSpells?.length ?? 0) > 0
     : character.class.toLowerCase().includes('mago') || character.class.toLowerCase().includes('chierico');
 
-  const [selectedAttribute, setSelectedAttribute] = useState<'INT' | 'FOR' | 'DES' | 'COS' | 'SAG' | 'CAR'>('INT');
+  const [loreDraft, setLoreDraft] = useState(character.lore ?? getDefaultLore(character));
+  useEffect(() => {
+    setLoreDraft(character.lore ?? getDefaultLore(character));
+  }, [character.id]);
+
+  const [selectedAttribute, setSelectedAttribute] = useState<AttributeKey>('INT');
   const [newGearName, setNewGearName] = useState('');
   const [newGearWeight, setNewGearWeight] = useState(1);
+  const [newGearQuantity, setNewGearQuantity] = useState(1);
+  const [newGearConsumable, setNewGearConsumable] = useState(false);
+  const [isModifierModalOpen, setIsModifierModalOpen] = useState(false);
+  const [newModifierName, setNewModifierName] = useState('');
+  const [newModifierValue, setNewModifierValue] = useState('-1');
+  const [newModifierIcon, setNewModifierIcon] = useState('🌙');
+  const [newModifierAttributes, setNewModifierAttributes] = useState<AttributeKey[]>([]);
 
   // Community publishing state
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
@@ -149,16 +180,96 @@ export default function CharacterSheet({
 
   // Level up ritual
   const [isLevelUpModalOpen, setIsLevelUpModalOpen] = useState(false);
+  const [levelUpAttribute, setLevelUpAttribute] = useState<AttributeKey>('INT');
   const handleLevelUp = () => {
-    onUpdateCharacter({ ...character, level: character.level + 1, experience: 0 });
+    if (character.locked || character.attributes[levelUpAttribute] >= 18) return;
+    onUpdateCharacter({
+      ...character,
+      level: character.level + 1,
+      experience: 0,
+      attributes: {
+        ...character.attributes,
+        [levelUpAttribute]: character.attributes[levelUpAttribute] + 1,
+      },
+    });
     setIsLevelUpModalOpen(false);
   };
 
-  // Update specific bond companion name
-  const handleBondChange = (index: number, name: string) => {
-    const updated = { ...character };
-    updated.bonds[index].companion = name;
-    onUpdateCharacter(updated);
+  const openLevelUpModal = () => {
+    const availableAttributes = ATTRIBUTE_KEYS.filter((attribute) => character.attributes[attribute] < 18);
+    setLevelUpAttribute(
+      availableAttributes.includes(selectedAttribute) ? selectedAttribute : availableAttributes[0] || 'INT',
+    );
+    setIsLevelUpModalOpen(true);
+  };
+
+  const getModifiersForAttribute = (attribute: AttributeKey) =>
+    (character.statModifiers || []).filter((modifier) => modifier.attributes.includes(attribute));
+  const getCircumstanceModifier = (attribute: AttributeKey) =>
+    getModifiersForAttribute(attribute).reduce((total, modifier) => total + modifier.value, 0);
+  const selectedAttributeModifiers = getModifiersForAttribute(selectedAttribute);
+  const selectedCircumstanceModifier = selectedAttributeModifiers.reduce((total, modifier) => total + modifier.value, 0);
+
+  const openModifierModal = () => {
+    setNewModifierName('');
+    setNewModifierValue('-1');
+    setNewModifierIcon('🌙');
+    setNewModifierAttributes([selectedAttribute]);
+    setIsModifierModalOpen(true);
+  };
+
+  const handleAddStatModifier = (event: FormEvent) => {
+    event.preventDefault();
+    const value = Number(newModifierValue);
+    if (
+      character.locked ||
+      !newModifierName.trim() ||
+      !Number.isInteger(value) ||
+      value === 0 ||
+      newModifierAttributes.length === 0
+    ) return;
+
+    const modifier: StatModifier = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name: newModifierName.trim(),
+      icon: newModifierIcon,
+      value,
+      attributes: newModifierAttributes,
+    };
+    onUpdateCharacter({ ...character, statModifiers: [...(character.statModifiers || []), modifier] });
+    setNewModifierName('');
+    setNewModifierValue('-1');
+  };
+
+  const handleRemoveStatModifier = (id: string) => {
+    if (character.locked) return;
+    onUpdateCharacter({
+      ...character,
+      statModifiers: (character.statModifiers || []).filter((modifier) => modifier.id !== id),
+    });
+  };
+
+  const handleBondChange = (index: number, field: 'companion' | 'statement', value: string) => {
+    const bonds = character.bonds.map((bond, bondIndex) =>
+      bondIndex === index ? { ...bond, [field]: value } : bond,
+    );
+    onUpdateCharacter({ ...character, bonds });
+  };
+
+  const handleAddBond = () => {
+    if (character.locked) return;
+    onUpdateCharacter({
+      ...character,
+      bonds: [...character.bonds, { companion: '', statement: '' }],
+    });
+  };
+
+  const handleDeleteBond = (index: number) => {
+    if (character.locked) return;
+    onUpdateCharacter({
+      ...character,
+      bonds: character.bonds.filter((_, bondIndex) => bondIndex !== index),
+    });
   };
 
   // Toggle character locking status
@@ -173,11 +284,34 @@ export default function CharacterSheet({
     e.preventDefault();
     if (!newGearName.trim()) return;
 
-    const updated = { ...character };
-    updated.gear = [...updated.gear, { name: newGearName, weight: newGearWeight }];
-    onUpdateCharacter(updated);
+    onUpdateCharacter({
+      ...character,
+      gear: [...character.gear, {
+        name: newGearName.trim(),
+        weight: newGearWeight,
+        quantity: newGearConsumable ? newGearQuantity : 1,
+        consumable: newGearConsumable,
+      }],
+    });
     setNewGearName('');
     setNewGearWeight(1);
+    setNewGearQuantity(1);
+    setNewGearConsumable(false);
+  };
+
+  const isGearConsumable = (item: Character['gear'][number]) =>
+    item.consumable ?? (item.quantity !== undefined && item.quantity > 1);
+  const getGearQuantity = (item: Character['gear'][number]) =>
+    isGearConsumable(item) ? item.quantity ?? 1 : 1;
+
+  const handleAdjustGearQuantity = (index: number, amount: number) => {
+    if (character.locked || !character.gear[index] || !isGearConsumable(character.gear[index])) return;
+    const gear = character.gear.map((item, itemIndex) =>
+      itemIndex === index
+        ? { ...item, quantity: Math.max(0, (item.quantity ?? 1) + amount) }
+        : item,
+    );
+    onUpdateCharacter({ ...character, gear });
   };
 
   // Delete inventory item
@@ -190,20 +324,13 @@ export default function CharacterSheet({
   };
 
   // Total calculated active equipment weight
-  const activeWeightSum = character.gear.reduce((acc, item) => acc + item.weight, 0);
+  const activeWeightSum = character.gear.reduce(
+    (total, item) => total + item.weight * getGearQuantity(item),
+    0,
+  );
 
   // Helper attribute modifier labels for UI previews
   const getModSymbol = (val: number) => formatModifier(getAttributeModifier(val));
-
-  // Map simple descriptive stats labels
-  const attributeLongNames = {
-    INT: 'Intelligenza',
-    FOR: 'Forza',
-    DES: 'Destrezza',
-    COS: 'Costituzione',
-    SAG: 'Saggezza',
-    CAR: 'Carisma'
-  };
 
   // Dynamic race description finder
   const getRaceDescription = (raceName: string, charClassStr: string) => {
@@ -409,7 +536,7 @@ export default function CharacterSheet({
                   </div>
                   {!character.locked && character.experience > 0 && (
                     <button
-                      onClick={() => setIsLevelUpModalOpen(true)}
+                      onClick={openLevelUpModal}
                       title="Avanza di Livello"
                       className="w-5 h-5 bg-primary/20 hover:bg-primary/40 text-primary text-[10px] rounded flex items-center justify-center font-bold transition-colors"
                     >
@@ -429,7 +556,7 @@ export default function CharacterSheet({
                     {selectedAttribute}
                   </p>
                   <p className="font-serif text-md font-bold text-on-surface">
-                    {attributeLongNames[selectedAttribute]}
+                    {ATTRIBUTE_NAMES[selectedAttribute]}
                   </p>
                 </div>
                 <div className="flex flex-col items-end">
@@ -439,12 +566,31 @@ export default function CharacterSheet({
                   <span className="font-mono text-[10px] text-primary-container-variant">
                     Mod: {getModSymbol(character.attributes[selectedAttribute])}
                   </span>
+                  {selectedCircumstanceModifier !== 0 && (
+                    <span className="font-mono text-[9px] text-tertiary">
+                      Circostanze {formatModifier(selectedCircumstanceModifier)} · totale{' '}
+                      {formatModifier(getAttributeModifier(character.attributes[selectedAttribute]) + selectedCircumstanceModifier)}
+                    </span>
+                  )}
                 </div>
               </div>
+              {selectedAttributeModifiers.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {selectedAttributeModifiers.map((modifier) => (
+                    <span
+                      key={modifier.id}
+                      className="rounded bg-surface-container-high px-2 py-1 text-[10px] text-on-surface-variant"
+                      title={`${modifier.name}: ${formatModifier(modifier.value)}`}
+                    >
+                      {modifier.icon} {modifier.name} {formatModifier(modifier.value)}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Smaller attribute picker grid */}
               <div className="grid grid-cols-2 gap-2">
-                {(['INT', 'FOR', 'DES', 'COS', 'SAG', 'CAR'] as const).map((attr) => (
+                {ATTRIBUTE_KEYS.map((attr) => (
                   <button
                     key={attr}
                     type="button"
@@ -459,15 +605,30 @@ export default function CharacterSheet({
                     <span className="font-serif text-lg font-bold block">{character.attributes[attr]}</span>
                     <span className="font-mono text-[9px] block text-primary">
                       {getModSymbol(character.attributes[attr])}
+                      {getCircumstanceModifier(attr) !== 0 && ` (${formatModifier(getCircumstanceModifier(attr))})`}
                     </span>
                   </button>
                 ))}
               </div>
             </div>
 
+            <button
+              type="button"
+              onClick={openModifierModal}
+              disabled={character.locked}
+              className="w-full py-2 border border-outline-variant/50 rounded text-xs font-mono text-on-surface-variant hover:border-primary hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Gestisci modificatori ({character.statModifiers?.length || 0})
+            </button>
+
             {/* Preset roll triggering button */}
             <button
-              onClick={() => onRollStat(attributeLongNames[selectedAttribute], character.attributes[selectedAttribute])}
+              onClick={() => onRollStat(
+                ATTRIBUTE_NAMES[selectedAttribute],
+                character.attributes[selectedAttribute],
+                selectedCircumstanceModifier,
+                selectedAttributeModifiers.map(({ name, icon, value }) => ({ name, icon, value })),
+              )}
               className="w-full py-4 bg-gradient-to-r from-on-tertiary-container to-primary-container text-on-primary font-bold rounded shadow-[0_0_15px_rgba(212,175,55,0.4)] hover:scale-105 active:scale-95 transition-all font-mono text-sm uppercase tracking-wider"
             >
               Tira + {selectedAttribute}
@@ -678,23 +839,54 @@ export default function CharacterSheet({
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
                 {/* Bonds Box */}
                 <div className="lg:col-span-8 bg-surface-container-high deckle-edge p-6">
-                  <h3 className="font-serif text-xl font-bold text-primary mb-4 flex items-center gap-2">
-                    👥 LEGAMI
-                  </h3>
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <h3 className="font-serif text-xl font-bold text-primary flex items-center gap-2">
+                      👥 LEGAMI
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={handleAddBond}
+                      disabled={character.locked}
+                      className="flex items-center gap-1 rounded border border-outline-variant/50 px-2.5 py-1.5 text-xs font-mono text-primary hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Plus size={14} />
+                      Aggiungi
+                    </button>
+                  </div>
                   <div className="space-y-4">
+                    {character.bonds.length === 0 && (
+                      <p className="text-xs text-on-surface-variant italic">Nessun legame. Aggiungine uno.</p>
+                    )}
                     {character.bonds.map((bond, index) => (
                       <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-outline-variant/20 pb-3 last:border-0 last:pb-0">
                         <input
                           type="text"
                           disabled={character.locked}
                           placeholder="Nome compagno"
+                          aria-label={`Nome compagno legame ${index + 1}`}
                           value={bond.companion}
-                          onChange={(e) => handleBondChange(index, e.target.value)}
-                          className="bg-surface-container border border-outline-variant/30 text-on-surface text-xs font-mono rounded px-2.5 py-1 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                          onChange={(event) => handleBondChange(index, 'companion', event.target.value)}
+                          className="w-full sm:w-36 shrink-0 bg-surface-container border border-outline-variant/30 text-on-surface text-xs font-mono rounded px-2.5 py-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none disabled:opacity-50"
                         />
-                        <p className="text-xs text-on-surface-variant leading-relaxed">
-                          {bond.statement}
-                        </p>
+                        <input
+                          type="text"
+                          disabled={character.locked}
+                          placeholder="Descrivi il legame..."
+                          aria-label={`Testo legame ${index + 1}`}
+                          value={bond.statement}
+                          onChange={(event) => handleBondChange(index, 'statement', event.target.value)}
+                          className="w-full min-w-0 flex-1 bg-surface-container border border-outline-variant/30 text-on-surface text-xs rounded px-2.5 py-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none disabled:opacity-50"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBond(index)}
+                          disabled={character.locked}
+                          aria-label={`Elimina legame ${index + 1}`}
+                          title="Elimina legame"
+                          className="self-end sm:self-auto shrink-0 rounded p-2 text-red-400 hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -716,14 +908,45 @@ export default function CharacterSheet({
                           key={idx}
                           className="flex justify-between p-2 bg-surface-container-highest/30 border border-outline-variant/10 rounded group text-xs items-center hover:bg-surface-container"
                         >
-                          <span className="font-sans font-medium text-on-surface hover:text-primary">
-                            {item.name}
-                          </span>
+                          <div className="min-w-0">
+                            <span className="block truncate font-sans font-medium text-on-surface hover:text-primary">
+                              {item.name}
+                            </span>
+                            <span className="text-[10px] text-outline font-mono">
+                              Peso: {item.weight * getGearQuantity(item)}
+                            </span>
+                          </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-on-surface-variant font-bold">{item.weight}</span>
+                            {isGearConsumable(item) && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAdjustGearQuantity(idx, -1)}
+                                  disabled={character.locked || (item.quantity ?? 1) <= 0}
+                                  aria-label={`Riduci quantità di ${item.name}`}
+                                  className="rounded p-1 text-on-surface-variant hover:bg-surface-variant disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  <Minus size={12} />
+                                </button>
+                                <span className="min-w-5 text-center font-mono text-on-surface-variant font-bold">
+                                  {item.quantity ?? 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAdjustGearQuantity(idx, 1)}
+                                  disabled={character.locked}
+                                  aria-label={`Aumenta quantità di ${item.name}`}
+                                  className="rounded p-1 text-on-surface-variant hover:bg-surface-variant disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                              </>
+                            )}
                             {!character.locked && (
                               <button
+                                type="button"
                                 onClick={() => handleDeleteGear(idx)}
+                                aria-label={`Elimina ${item.name}`}
                                 className="text-red-400 hover:text-red-300 p-0.5"
                               >
                                 <Trash2 size={12} />
@@ -749,7 +972,7 @@ export default function CharacterSheet({
                   {/* Add item form within sidebar boundaries */}
                   {!character.locked && (
                     <form onSubmit={handleAddGear} className="mt-4 border-t border-outline-variant/20 pt-4 space-y-2">
-                      <div className="flex gap-2">
+                      <div className={`grid gap-2 ${newGearConsumable ? 'grid-cols-[minmax(0,1fr)_3.25rem_3.25rem]' : 'grid-cols-[minmax(0,1fr)_3.25rem]'}`}>
                         <input
                           type="text"
                           required
@@ -762,17 +985,44 @@ export default function CharacterSheet({
                           type="number"
                           required
                           min="0"
-                          max="10"
+                          step="1"
                           value={newGearWeight}
                           onChange={(e) => setNewGearWeight(parseInt(e.target.value) || 0)}
-                          className="w-12 bg-surface-container-lowest border border-outline-variant/30 text-xs text-center px-1 py-1 text-on-surface rounded outline-none font-mono"
+                          aria-label="Peso unitario"
+                          placeholder="Peso"
+                          className="w-full bg-surface-container-lowest border border-outline-variant/30 text-xs text-center px-1 py-1 text-on-surface rounded outline-none font-mono"
                         />
+                        {newGearConsumable && (
+                          <input
+                            type="number"
+                            required
+                            min="1"
+                            step="1"
+                            value={newGearQuantity}
+                            onChange={(e) => setNewGearQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                            aria-label="Quantità"
+                            placeholder="Qtà"
+                            className="w-full bg-surface-container-lowest border border-outline-variant/30 text-xs text-center px-1 py-1 text-on-surface rounded outline-none font-mono"
+                          />
+                        )}
                       </div>
+                      <label className="flex items-center gap-2 text-[10px] font-mono text-on-surface-variant">
+                        <input
+                          type="checkbox"
+                          checked={newGearConsumable}
+                          onChange={(event) => {
+                            setNewGearConsumable(event.target.checked);
+                            if (!event.target.checked) setNewGearQuantity(1);
+                          }}
+                          className="accent-primary"
+                        />
+                        Consumabile (quantità modificabile)
+                      </label>
                       <button
                         type="submit"
                         className="w-full py-1 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 hover:scale-95 duration-200 transition-all font-mono text-[10px] font-bold uppercase rounded"
                       >
-                        Aggiungi Oggetto (+ peso)
+                        Aggiungi Oggetto
                       </button>
                     </form>
                   )}
@@ -799,18 +1049,50 @@ export default function CharacterSheet({
                     key={idx}
                     className="p-3 bg-surface-container-lowest border border-outline-variant/30 rounded flex justify-between items-center"
                   >
-                    <div>
+                    <div className="min-w-0">
                       <h4 className="font-serif text-md text-primary font-bold">{item.name}</h4>
-                      <p className="text-xs text-outline font-mono">Peso: {item.weight}</p>
+                      <p className="text-xs text-outline font-mono">
+                        Peso unitario: {item.weight}
+                        {isGearConsumable(item) && <> · Quantità: {item.quantity ?? 1}</>}
+                      </p>
                     </div>
-                    {!character.locked && (
-                      <button
-                        onClick={() => handleDeleteGear(idx)}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                    <div className="ml-3 flex shrink-0 items-center gap-1">
+                      {isGearConsumable(item) && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleAdjustGearQuantity(idx, -1)}
+                            disabled={character.locked || (item.quantity ?? 1) <= 0}
+                            aria-label={`Riduci quantità di ${item.name}`}
+                            className="rounded p-2 text-on-surface-variant hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="min-w-6 text-center font-mono text-sm text-on-surface">
+                            {item.quantity ?? 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleAdjustGearQuantity(idx, 1)}
+                            disabled={character.locked}
+                            aria-label={`Aumenta quantità di ${item.name}`}
+                            className="rounded p-2 text-on-surface-variant hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </>
+                      )}
+                      {!character.locked && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteGear(idx)}
+                          aria-label={`Elimina ${item.name}`}
+                          className="rounded p-2 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -819,7 +1101,7 @@ export default function CharacterSheet({
                 <div className="bg-surface-container-low border border-outline-variant/30 p-4 rounded max-w-md">
                   <h4 className="font-mono text-xs font-bold text-primary uppercase mb-2">Equipaggia un Nuovo Strumento</h4>
                   <form onSubmit={handleAddGear} className="space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className={`grid gap-3 ${newGearConsumable ? 'grid-cols-4' : 'grid-cols-3'}`}>
                       <input
                         type="text"
                         required
@@ -837,7 +1119,32 @@ export default function CharacterSheet({
                         onChange={(e) => setNewGearWeight(parseInt(e.target.value) || 0)}
                         className="bg-surface-container-lowest border border-outline-variant/30 text-xs text-center px-2 py-2 text-on-surface rounded outline-none font-mono"
                       />
+                      {newGearConsumable && (
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          step="1"
+                          placeholder="Quantità"
+                          aria-label="Quantità nuovo oggetto"
+                          value={newGearQuantity}
+                          onChange={(e) => setNewGearQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="bg-surface-container-lowest border border-outline-variant/30 text-xs text-center px-2 py-2 text-on-surface rounded outline-none font-mono"
+                        />
+                      )}
                     </div>
+                    <label className="flex items-center gap-2 text-xs text-on-surface-variant">
+                      <input
+                        type="checkbox"
+                        checked={newGearConsumable}
+                        onChange={(event) => {
+                          setNewGearConsumable(event.target.checked);
+                          if (!event.target.checked) setNewGearQuantity(1);
+                        }}
+                        className="accent-primary"
+                      />
+                      Consumabile (quantità modificabile)
+                    </label>
                     <button
                       type="submit"
                       className="w-full py-2 bg-gradient-to-r from-primary-container to-primary text-on-primary font-mono text-xs font-bold rounded"
@@ -918,13 +1225,11 @@ export default function CharacterSheet({
                   <textarea
                     rows={8}
                     readOnly={character.locked}
-                    value={
-                      character.class.includes('Mago')
-                        ? 'Thalric della foresta d\'argento. Un tempo scolaro brillante della prestigiosa accademia di Grimorio Master, bandito per aver cercato i segreti nascosti della necromanzia arcana. Ora vaga per i sotterranei alla ricerca della gemma d\'anima perfetta...'
-                        : 'Un combattente coraggioso fuggito dalla morsa della distruzione di Redwall, brandisce un pesante spadone spezzatombe...'
-                    }
-                    onChange={(e) => {
-                      // purely cosmetic read-only diary unless they unlock and edit can be saved to dynamic character notes in state if we want.
+                    value={loreDraft}
+                    onChange={(event) => {
+                      const lore = event.target.value;
+                      setLoreDraft(lore);
+                      onUpdateCharacter({ ...character, lore });
                     }}
                     className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded p-4 text-xs font-mono text-on-surface disabled:text-on-surface disabled:opacity-90 outline-none focus:border-primary"
                   />
@@ -1081,6 +1386,163 @@ export default function CharacterSheet({
         </div>
       )}
 
+      {isModifierModalOpen && (
+        <div
+          className="fixed inset-0 z-[10020] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+          onClick={() => setIsModifierModalOpen(false)}
+        >
+          <div
+            className="bg-surface-container-high border border-outline-variant rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 flex flex-col gap-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-serif text-xl text-primary font-bold">Modificatori di circostanza</h2>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  Si sommano al tiro senza cambiare il punteggio. Restano attivi finché non li rimuovi.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModifierModalOpen(false)}
+                aria-label="Chiudi gestione modificatori"
+                className="p-1 text-on-surface-variant hover:text-on-surface"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <section className="space-y-2">
+              <h3 className="font-mono text-xs uppercase tracking-wider text-on-surface-variant">
+                Effetti attivi
+              </h3>
+              {(character.statModifiers || []).length === 0 ? (
+                <p className="text-xs text-on-surface-variant/70 italic">Nessun modificatore attivo.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {(character.statModifiers || []).map((modifier) => (
+                    <li
+                      key={modifier.id}
+                      className="flex items-center justify-between gap-3 rounded border border-outline-variant/40 bg-surface-container p-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-on-surface">
+                          {modifier.icon} {modifier.name}{' '}
+                          <span className={modifier.value < 0 ? 'text-red-400' : 'text-green-400'}>
+                            {formatModifier(modifier.value)}
+                          </span>
+                        </p>
+                        <p className="text-[10px] text-on-surface-variant">
+                          {modifier.attributes.map((attribute) => attribute).join(', ')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveStatModifier(modifier.id)}
+                        disabled={character.locked}
+                        aria-label={`Rimuovi ${modifier.name}`}
+                        title="Rimuovi modificatore"
+                        className="shrink-0 p-2 text-red-400 hover:bg-red-400/10 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <form onSubmit={handleAddStatModifier} className="space-y-4 border-t border-outline-variant/40 pt-4">
+              <h3 className="font-mono text-xs uppercase tracking-wider text-on-surface-variant">
+                Aggiungi un effetto
+              </h3>
+              <div className="grid grid-cols-[1fr_auto] gap-3">
+                <label className="text-xs text-on-surface-variant">
+                  Nome
+                  <input
+                    value={newModifierName}
+                    onChange={(event) => setNewModifierName(event.target.value)}
+                    disabled={character.locked}
+                    maxLength={50}
+                    placeholder="Es. Notte insonne"
+                    className="mt-1 w-full rounded border border-outline-variant bg-surface-container px-3 py-2 text-sm text-on-surface outline-none focus:border-primary disabled:opacity-40"
+                  />
+                </label>
+                <label className="text-xs text-on-surface-variant">
+                  Icona
+                  <select
+                    value={newModifierIcon}
+                    onChange={(event) => setNewModifierIcon(event.target.value)}
+                    disabled={character.locked}
+                    className="mt-1 block rounded border border-outline-variant bg-surface-container px-3 py-2 text-lg text-on-surface outline-none focus:border-primary disabled:opacity-40"
+                  >
+                    {['🌙', '💤', '🩹', '✨', '🧪', '🔥', '❄️', '👑'].map((icon) => (
+                      <option key={icon} value={icon}>{icon}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="block text-xs text-on-surface-variant">
+                Modificatore al tiro
+                <input
+                  type="number"
+                  step="1"
+                  value={newModifierValue}
+                  onChange={(event) => setNewModifierValue(event.target.value)}
+                  disabled={character.locked}
+                  className="mt-1 block w-28 rounded border border-outline-variant bg-surface-container px-3 py-2 text-sm text-on-surface outline-none focus:border-primary disabled:opacity-40"
+                />
+              </label>
+              <fieldset disabled={character.locked} className="space-y-2 disabled:opacity-40">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-on-surface-variant">Attributi interessati</span>
+                  <button
+                    type="button"
+                    onClick={() => setNewModifierAttributes(ATTRIBUTE_KEYS)}
+                    className="text-[10px] font-mono text-primary hover:underline"
+                  >
+                    Seleziona tutti
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {ATTRIBUTE_KEYS.map((attribute) => (
+                    <label
+                      key={attribute}
+                      className="flex items-center gap-2 rounded border border-outline-variant/40 bg-surface-container px-2 py-2 text-xs text-on-surface"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={newModifierAttributes.includes(attribute)}
+                        onChange={() => setNewModifierAttributes((current) =>
+                          current.includes(attribute)
+                            ? current.filter((item) => item !== attribute)
+                            : [...current, attribute],
+                        )}
+                        className="accent-primary"
+                      />
+                      {attribute} · {ATTRIBUTE_NAMES[attribute]}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <button
+                type="submit"
+                disabled={
+                  character.locked ||
+                  !newModifierName.trim() ||
+                  !Number.isInteger(Number(newModifierValue)) ||
+                  Number(newModifierValue) === 0 ||
+                  newModifierAttributes.length === 0
+                }
+                className="w-full rounded bg-primary px-4 py-2 text-sm font-bold text-on-primary hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Aggiungi modificatore
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ⭐ RITUALE DEL LIVELLO SUPERIORE */}
       {isLevelUpModalOpen && (
         <div
@@ -1100,8 +1562,31 @@ export default function CharacterSheet({
               <span className="text-primary font-bold">{character.name}</span> avanza al{' '}
               <span className="text-primary font-bold">Livello {character.level + 1}</span>.
             </p>
+            <label className="w-full text-left text-xs font-mono text-on-surface-variant">
+              Scegli l'attributo da aumentare di 1
+              <select
+                value={levelUpAttribute}
+                onChange={(event) => setLevelUpAttribute(event.target.value as AttributeKey)}
+                className="mt-2 w-full rounded border border-outline-variant bg-surface-container px-3 py-2 text-sm text-on-surface"
+              >
+                {ATTRIBUTE_KEYS.map((attribute) => (
+                  <option
+                    key={attribute}
+                    value={attribute}
+                    disabled={character.attributes[attribute] >= 18}
+                  >
+                    {attribute} · {ATTRIBUTE_NAMES[attribute]} ({character.attributes[attribute]} → {character.attributes[attribute] + 1})
+                  </option>
+                ))}
+              </select>
+            </label>
+            {ATTRIBUTE_KEYS.every((attribute) => character.attributes[attribute] >= 18) && (
+              <p className="text-xs text-red-400 font-mono">
+                Tutti gli attributi hanno già raggiunto il massimo di 18.
+              </p>
+            )}
             <p className="text-xs text-on-surface-variant/60 font-mono italic">
-              I Punti Esperienza saranno azzerati e il rito non potrà essere disfatto.
+              Il punteggio scelto aumenta di 1 e i Punti Esperienza saranno azzerati. Il rito non potrà essere disfatto.
             </p>
             <div className="flex gap-3 w-full mt-2">
               <button
@@ -1112,7 +1597,8 @@ export default function CharacterSheet({
               </button>
               <button
                 onClick={handleLevelUp}
-                className="flex-1 py-2 rounded bg-primary text-on-primary text-sm font-serif font-bold uppercase tracking-widest hover:bg-primary/80 transition-colors shadow-[0_0_20px_rgba(242,202,80,0.3)]"
+                disabled={character.locked || character.attributes[levelUpAttribute] >= 18}
+                className="flex-1 py-2 rounded bg-primary text-on-primary text-sm font-serif font-bold uppercase tracking-widest hover:bg-primary/80 transition-colors shadow-[0_0_20px_rgba(242,202,80,0.3)] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Compi il Rito
               </button>
