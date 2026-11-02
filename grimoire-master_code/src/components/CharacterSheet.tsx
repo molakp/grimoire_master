@@ -1,6 +1,6 @@
 import { useState, useEffect, ReactNode, FormEvent, ChangeEvent } from 'react';
 import { AttributeKey, Character, CharacterTemplate, DiceRollLog, StatModifier } from '../types';
-import { Shield, BookOpen, Swords, Heart, User, Sparkles, Plus, Minus, Lock, Unlock, Trash2, ArrowLeft, RotateCcw, CloudLightning, X } from 'lucide-react';
+import { Sparkles, Plus, Minus, Lock, Unlock, Trash2, ArrowLeft, CloudLightning, X } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import { formatModifier, getAttributeModifier } from '../lib/gameRules';
 
