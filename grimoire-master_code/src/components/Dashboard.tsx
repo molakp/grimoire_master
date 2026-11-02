@@ -4,7 +4,7 @@ import { CharacterTemplate, Character, Mail, PartyInvitation, BannedUser, Admin,
 import { COMMUNITY_CHARACTERS } from '../data';
 import { db } from '../firebase';
 import { useTemplates } from '../hooks/useTemplates';
-import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, ArrowLeft, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Skull, AlertCircle, Users, X, ScrollText, Edit3, Settings } from 'lucide-react';
+import { LayoutGrid, List, Search, ArrowDown, ClipboardCopy, Bookmark, Star, ArrowRight, ArrowLeft, UserPlus, Sparkles, LogOut, LogIn, CloudLightning, Shield, Mail as MailIcon, PlusCircle, Trash2, BookOpen, Users, X, ScrollText, Edit3, Settings } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import AdminCourt from './AdminCourt';
 import CharacterCreationWizard from './CharacterCreationWizard';
