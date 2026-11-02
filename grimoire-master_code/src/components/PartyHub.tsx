@@ -26,7 +26,6 @@ import {
 } from '../types';
 import {
   createParty,
-  claimPublicHandle,
   linkCharacterToParty,
   sendPartyInvitation,
   unlinkCharacterFromParty,
@@ -76,9 +75,6 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
   const [isPlayerPreview, setIsPlayerPreview] = useState(false);
   const [newPartyName, setNewPartyName] = useState('');
   const [newPartyObjective, setNewPartyObjective] = useState('');
-  const [userHandle, setUserHandle] = useState('');
-  const [handleDraft, setHandleDraft] = useState('');
-  const [isSavingHandle, setIsSavingHandle] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [sessionTitle, setSessionTitle] = useState('');
   const [sessionDate, setSessionDate] = useState('');
@@ -109,12 +105,6 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
       setOwnedParties(snapshot.docs.map((partyDoc) => ({ ...partyDoc.data(), id: partyDoc.id }) as Party));
     }, report);
 
-    const profileUnsubscribe = onSnapshot(doc(db, 'users', currentUser.uid), (snapshot) => {
-      const handle = snapshot.exists() ? String(snapshot.data().handle || '') : '';
-      setUserHandle(handle);
-      setHandleDraft(handle);
-    }, report);
-
     const membershipsQuery = query(
       collection(db, 'users', currentUser.uid, 'partyMemberships'),
       limit(20),
@@ -132,7 +122,6 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
 
     return () => {
       ownedUnsubscribe();
-      profileUnsubscribe();
       membershipsUnsubscribe();
     };
   }, [currentUser?.uid]);
@@ -242,23 +231,6 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
     } catch (error) {
       console.error('Unable to create Party:', error);
       notify.error(errorMessage(error));
-    }
-  };
-
-  const handleSavePublicHandle = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!currentUser) return;
-    setIsSavingHandle(true);
-    try {
-      const handle = await claimPublicHandle(db, currentUser, handleDraft);
-      setUserHandle(handle);
-      setHandleDraft(handle);
-      notify.success(`Il tuo username pubblico è @${handle}.`);
-    } catch (error) {
-      console.error('Unable to claim public username:', error);
-      notify.error(errorMessage(error));
-    } finally {
-      setIsSavingHandle(false);
     }
   };
 
@@ -628,37 +600,40 @@ export default function PartyHub({ currentUser, myCharacters, onSelectCharacter 
         <p className="text-sm text-on-surface-variant">Le campagne che dirigi e quelle in cui giochi.</p>
       </header>
 
-      <form onSubmit={handleCreateParty} className="grid gap-3 rounded-xl border border-primary/30 bg-surface-container-low p-5 md:grid-cols-[1fr_1.4fr_auto] md:items-end">
-        <label className="text-xs uppercase tracking-wide text-on-surface-variant">Nome della spedizione
-          <input required maxLength={100} value={newPartyName} onChange={(event) => setNewPartyName(event.target.value)} placeholder="Es. I Custodi della Fiamma" className="mt-1 block w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
-        </label>
-        <label className="text-xs uppercase tracking-wide text-on-surface-variant">Obiettivo condiviso
-          <input maxLength={1000} value={newPartyObjective} onChange={(event) => setNewPartyObjective(event.target.value)} placeholder="Cosa vuole ottenere il Party?" className="mt-1 block w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
-        </label>
-        <button type="submit" className="inline-flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-semibold text-on-primary"><Plus size={16} /> Crea Party</button>
-      </form>
+      <section className="space-y-5">
+        <div>
+          <h3 className="font-serif text-2xl text-on-surface">Le tue campagne</h3>
+          <p className="mt-1 text-sm text-on-surface-variant">Apri una spedizione per gestirla o riprendere da dove eri rimasto.</p>
+        </div>
+        <div className="grid gap-8 xl:grid-cols-2">
+          <section>
+            <h4 className="mb-4 flex items-center gap-2 font-serif text-xl text-primary"><Crown size={20} /> Campagne che dirigi</h4>
+            <PartyList parties={ownedParties} emptyText="Non dirigi ancora nessuna spedizione." onOpen={openParty} badge="MASTER" />
+          </section>
+          <section>
+            <h4 className="mb-4 flex items-center gap-2 font-serif text-xl text-secondary"><Users size={20} /> Campagne in cui giochi</h4>
+            <PartyList parties={joinedParties.filter((party) => !ownedParties.some((owned) => owned.id === party.id))} emptyText="Non sei ancora stato arruolato in una spedizione." onOpen={openParty} badge="GIOCATORE" />
+            {joinedPartyIds.size === 0 && <p className="mt-3 flex items-center gap-2 text-xs text-on-surface-variant"><Mail size={14} /> Gli inviti ricevuti si gestiscono dalla posta dell’app.</p>}
+          </section>
+        </div>
+      </section>
 
-      <form onSubmit={handleSavePublicHandle} className="flex flex-wrap items-end gap-3 rounded-xl border border-outline-variant bg-surface-container-low p-5">
-        <label className="min-w-[220px] flex-1 text-xs uppercase tracking-wide text-on-surface-variant">Il tuo username pubblico
-          <input required minLength={3} maxLength={20} value={handleDraft} onChange={(event) => setHandleDraft(event.target.value.replace(/^@/, ''))} placeholder="es. aldor_il_saggio" className="mt-1 block w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
-        </label>
-        <button type="submit" disabled={isSavingHandle || handleDraft.trim().toLowerCase() === userHandle} className="rounded border border-primary/50 px-4 py-2 text-sm text-primary disabled:cursor-not-allowed disabled:opacity-50">
-          {isSavingHandle ? 'Salvataggio…' : userHandle ? 'Aggiorna username' : 'Scegli username'}
-        </button>
-        <p className="w-full text-xs text-on-surface-variant">Gli altri giocatori vedranno questo nome per invitarti; la tua email non sarà pubblicata.</p>
-      </form>
+      <details className="group rounded-xl border border-outline-variant bg-surface-container-low">
+        <summary className="flex cursor-pointer list-none items-center gap-2 p-4 font-semibold text-on-surface marker:hidden">
+          <Plus size={18} className="text-primary" />
+          Crea una nuova campagna
+        </summary>
+        <form onSubmit={handleCreateParty} className="grid gap-3 border-t border-outline-variant p-5 md:grid-cols-[1fr_1.4fr_auto] md:items-end">
+          <label className="text-xs uppercase tracking-wide text-on-surface-variant">Nome della spedizione
+            <input required maxLength={100} value={newPartyName} onChange={(event) => setNewPartyName(event.target.value)} placeholder="Es. I Custodi della Fiamma" className="mt-1 block w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
+          </label>
+          <label className="text-xs uppercase tracking-wide text-on-surface-variant">Obiettivo condiviso
+            <input maxLength={1000} value={newPartyObjective} onChange={(event) => setNewPartyObjective(event.target.value)} placeholder="Cosa vuole ottenere il Party?" className="mt-1 block w-full rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface outline-none focus:border-primary" />
+          </label>
+          <button type="submit" className="inline-flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-semibold text-on-primary"><Plus size={16} /> Crea Party</button>
+        </form>
+      </details>
 
-      <div className="grid gap-8 xl:grid-cols-2">
-        <section>
-          <h3 className="mb-4 flex items-center gap-2 font-serif text-2xl text-primary"><Crown size={20} /> Campagne che dirigi</h3>
-          <PartyList parties={ownedParties} emptyText="Non dirigi ancora nessuna spedizione." onOpen={openParty} badge="MASTER" />
-        </section>
-        <section>
-          <h3 className="mb-4 flex items-center gap-2 font-serif text-2xl text-secondary"><Users size={20} /> Campagne in cui giochi</h3>
-          <PartyList parties={joinedParties.filter((party) => !ownedParties.some((owned) => owned.id === party.id))} emptyText="Non sei ancora stato arruolato in una spedizione." onOpen={openParty} badge="GIOCATORE" />
-          {joinedPartyIds.size === 0 && <p className="mt-3 flex items-center gap-2 text-xs text-on-surface-variant"><Mail size={14} /> Gli inviti ricevuti si gestiscono dalla posta dell’app.</p>}
-        </section>
-      </div>
     </section>
   );
 }
@@ -680,6 +655,7 @@ function PartyList({ parties, emptyText, onOpen, badge }: {
             <ChevronRight size={18} className="shrink-0 text-primary" />
           </span>
           <span className="mt-2 block text-sm text-on-surface-variant">{party.objective || 'Nessun obiettivo condiviso.'}</span>
+          <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">Apri campagna <ChevronRight size={16} /></span>
         </button>
       ))}
     </div>
